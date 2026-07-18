@@ -1,6 +1,6 @@
 # Root Agents.md
 
-Luminous is a provider-agnostic template management system for digitial signatures. 
+Luminous provides open-source components for document management systems and template management for digital signatures.
 
 ## Implementation rules
 
