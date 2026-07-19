@@ -1,6 +1,6 @@
 # Initial Document Seed for the MIME Type Registry
 
-> **Post-implementation note (2026-07-19):** the per-category `AddXXXFormats` methods on `DocumentSeed` are **public** — not private as originally specified in the Data representation paragraph — so consumers can compose custom seeds from a subset of categories.
+> **Post-implementation note (2026-07-19):** the per-category `AddXXXFormats` methods on `DocumentSeed` are **public** — not private as originally specified in the Data representation paragraph — so consumers can compose custom seeds from a subset of categories. Fixed .avcs group.
 
 ## Rationale
 
@@ -49,7 +49,7 @@ This policy is mechanically checkable against the IANA registry, stable over tim
 
 **Group table**: the authoritative curation lives in the List of MIME Type Groups section below, which lists every group (primary, aliases, extensions, explicit parents) plus bare parents and extension preference orders, and documents the methodology used to derive each row. The implementer transcribes that table into builder calls without re-deciding mappings; disagreements with the table are resolved by amending the table first.
 
-**Testing**: pin the Xberg extension list (July 2026 snapshot) as xunit Theory Data in the test project and assert in one sociable Theory test method that every entry resolves through `DocumentSeed.Registry`. A mirror test transcribes the group table a second time into static test data — primary, aliases, extensions, and explicit parents per group — and asserts that the built registry matches it exactly, including the total group count of 89. This double-entry transcription is what makes the "exactly" acceptance criterion verifiable: a transcription error must be made identically twice to go undetected, and it also covers the hierarchy edges (including the `application/x-ole-storage` parents) that the scenario tests do not reach. Additional sociable tests cover the litmus normalizations, the docx container-versus-alias distinction, the `.webm` preference order, and that `CreateBuilder().Build()` round-trips to an equivalent registry.
+**Testing**: pin the Xberg extension list (July 2026 snapshot) as xunit Theory Data in the test project and assert in one sociable Theory test method that every entry resolves through `DocumentSeed.Registry`. A mirror test transcribes the group table a second time into static test data — primary, aliases, extensions, and explicit parents per group — and asserts that the built registry matches it exactly, including the total group count of 90. This double-entry transcription is what makes the "exactly" acceptance criterion verifiable: a transcription error must be made identically twice to go undetected, and it also covers the hierarchy edges (including the `application/x-ole-storage` parents) that the scenario tests do not reach. Additional sociable tests cover the litmus normalizations, the docx container-versus-alias distinction, the `.webm` preference order, and that `CreateBuilder().Build()` round-trips to an equivalent registry.
 
 ### List of MIME Type Groups
 
@@ -139,7 +139,8 @@ Parents reachable through the built-in structured-syntax suffix rules (`+xml`, `
 | `image/heif` | — | `.heif`          | — | |
 | `image/heic` | — | `.heic`          | `image/heif` | HEIC is HEIF with HEVC coding |
 | `image/heic-sequence` | — | `.heics`         | — | optional parent `image/heif-sequence` omitted (no extension in scope) |
-| `image/avif` | — | `.avif`, `.avcs`        | — | |
+| `image/avcs` | — | `.avcs`          | — | AVC-coded HEIF image sequence (ISO/IEC 23008-12), not part of the AVIF family |
+| `image/avif` | — | `.avif`          | — | |
 | `image/svg+xml` | — | `.svg`           | — | xml parent via suffix rule; covers Xberg's vector *and* markup listing |
 
 #### Audio & Video

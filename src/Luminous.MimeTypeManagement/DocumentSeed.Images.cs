@@ -58,7 +58,10 @@ public static partial class DocumentSeed
         // HEIC is HEIF with HEVC coding
         AddGroup(builder, "image/heic", extensions: [".heic"], parent: "image/heif");
         AddGroup(builder, "image/heic-sequence", extensions: [".heics"]);
-        AddGroup(builder, "image/avif", extensions: [".avif", ".avcs"]);
+
+        // AVC-coded HEIF image sequence (ISO/IEC 23008-12), not part of the AVIF family
+        AddGroup(builder, "image/avcs", extensions: [".avcs"]);
+        AddGroup(builder, "image/avif", extensions: [".avif"]);
         AddGroup(builder, "image/svg+xml", extensions: [".svg"]);
     }
 }

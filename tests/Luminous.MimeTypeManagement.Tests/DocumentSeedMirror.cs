@@ -10,7 +10,7 @@ namespace Luminous.MimeTypeManagement.Tests;
 /// </summary>
 public static class DocumentSeedMirror
 {
-    public const int ExpectedGroupCount = 89;
+    public const int ExpectedGroupCount = 90;
 
     public static IReadOnlyList<(string Primary, string[] Aliases, string[] Extensions, string[] Parents)> Rows { get; }
         =
@@ -83,7 +83,8 @@ public static class DocumentSeedMirror
             ("image/heif", [], [".heif"], []),
             ("image/heic", [], [".heic"], ["image/heif"]),
             ("image/heic-sequence", [], [".heics"], []),
-            ("image/avif", [], [".avif", ".avcs"], []),
+            ("image/avcs", [], [".avcs"], []),
+            ("image/avif", [], [".avif"], []),
             ("image/svg+xml", [], [".svg"], []),
 
             // Audio and video
