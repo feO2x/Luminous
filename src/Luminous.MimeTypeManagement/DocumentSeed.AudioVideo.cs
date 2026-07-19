@@ -29,5 +29,13 @@ public static partial class DocumentSeed
         AddGroup(builder, "video/mp4", extensions: [".mp4"]);
         AddGroup(builder, "video/mpeg", extensions: [".mpeg"]);
         AddGroup(builder, "video/webm", extensions: [".webm"]);
+
+        // The preference belongs to this category so that subset seeds composed from this method
+        // prefer video/webm for .webm just like the full seed does.
+        builder.SetExtensionPreference(
+            FileExtension.Parse(".webm"),
+            MimeType.Parse("video/webm"),
+            MimeType.Parse("audio/webm")
+        );
     }
 }

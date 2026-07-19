@@ -71,11 +71,6 @@ public static partial class DocumentSeed
         AddWebAndDataFormats(builder);
         AddEmailAndArchiveFormats(builder);
         AddAcademicFormats(builder);
-        builder.SetExtensionPreference(
-            FileExtension.Parse(".webm"),
-            MimeType.Parse("video/webm"),
-            MimeType.Parse("audio/webm")
-        );
         return builder;
     }
 

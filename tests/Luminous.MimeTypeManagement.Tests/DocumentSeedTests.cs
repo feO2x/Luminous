@@ -177,7 +177,8 @@ public sealed class DocumentSeedTests
     {
         var registry = DocumentSeed.Registry;
 
-        registry.GetGroups(".webm").Select(group => group.PrimaryMimeType.Value)
+        registry
+           .GetGroups(".webm").Select(group => group.PrimaryMimeType.Value)
            .Should().Equal("video/webm", "audio/webm");
         registry.TryGetPreferredGroup(".webm", out var preferred).Should().BeTrue();
         preferred.Should().NotBeNull();
@@ -187,9 +188,11 @@ public sealed class DocumentSeedTests
     [Fact]
     public void CompoundExtensionsResolveToTheirGroup()
     {
-        DocumentSeed.Registry.GetGroups(".tar.gz").Select(group => group.PrimaryMimeType.Value)
+        DocumentSeed.Registry
+           .GetGroups(".tar.gz").Select(group => group.PrimaryMimeType.Value)
            .Should().Equal("application/gzip");
-        DocumentSeed.Registry.GetGroups(".tgz").Select(group => group.PrimaryMimeType.Value)
+        DocumentSeed.Registry
+           .GetGroups(".tgz").Select(group => group.PrimaryMimeType.Value)
            .Should().Equal("application/gzip");
     }
 
@@ -210,7 +213,8 @@ public sealed class DocumentSeedTests
 
         built.Normalize("application/x-zip-compressed").Value.Should().Be("application/zip");
         built.IsSubtypeOf("application/msword", "application/x-ole-storage").Should().BeTrue();
-        built.GetGroups(".webm").Select(group => group.PrimaryMimeType.Value)
+        built
+           .GetGroups(".webm").Select(group => group.PrimaryMimeType.Value)
            .Should().Equal("video/webm", "audio/webm");
     }
 
@@ -244,11 +248,28 @@ public sealed class DocumentSeedTests
         composed.TryGetGroup("application/zip", out _).Should().BeFalse();
 
         // Explicit parent edges work even when the parent has no group in the subset
-        composed.IsSubtypeOf(
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/zip"
-        ).Should().BeTrue();
+        composed
+           .IsSubtypeOf(
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "application/zip"
+            )
+           .Should().BeTrue();
         composed.Normalize("text/xml").Value.Should().Be("application/xml");
+    }
+
+    [Fact]
+    public void AudioVideoSubsetPrefersVideoWebmLikeTheFullSeed()
+    {
+        var builder = new MimeTypeRegistryBuilder();
+        DocumentSeed.AddAudioVideoFormats(builder);
+        var composed = builder.Build();
+
+        composed
+           .GetGroups(".webm").Select(group => group.PrimaryMimeType.Value)
+           .Should().Equal("video/webm", "audio/webm");
+        composed.TryGetPreferredGroup(".webm", out var preferred).Should().BeTrue();
+        preferred.Should().NotBeNull();
+        preferred.PrimaryMimeType.Value.Should().Be("video/webm");
     }
 
     [Fact]
