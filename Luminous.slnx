@@ -1,14 +1,23 @@
 <Solution>
-  <Folder Name="/SolutionItems/">
-    <File Path="AGENTS.md" />
-    <File Path="Directory.Build.props" />
-    <File Path="Directory.Packages.props" />
-    <File Path="global.json" />
-    <File Path="LICENSE" />
-    <File Path="README.md" />
-    <File Path="THIRD-PARTY-NOTICES.md" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/Luminous.InSign.Tests/Luminous.InSign.Tests.csproj" />
-  </Folder>
+    <Folder Name="/SolutionItems/">
+        <File Path=".editorconfig" />
+        <File Path=".gitignore" />
+        <File Path="AGENTS.md" />
+        <File Path="Directory.Build.props" />
+        <File Path="Directory.Packages.props" />
+        <File Path="global.json" />
+        <File Path="LICENSE" />
+        <File Path="Luminous.sln.DotSettings" />
+        <File Path="README.md" />
+        <File Path="THIRD-PARTY-NOTICES.md" />
+    </Folder>
+    <Folder Name="/src/">
+        <Project Path="src/Luminous.MimeTypeManagement/Luminous.MimeTypeManagement.csproj" />
+    </Folder>
+    <Folder Name="/tests/">
+        <File Path="tests\AGENTS.md" />
+        <File Path="tests\Directory.Build.props" />
+        <Project Path="tests/Luminous.InSign.Tests/Luminous.InSign.Tests.csproj" />
+        <Project Path="tests/Luminous.MimeTypeManagement.Tests/Luminous.MimeTypeManagement.Tests.csproj" />
+    </Folder>
 </Solution>
