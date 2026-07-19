@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/Luminous.MimeTypeManagement/Luminous.MimeTypeManagement.csproj" />
+  </ItemGroup>
+</Project>
