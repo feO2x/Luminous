@@ -9,6 +9,8 @@
     <File Path="THIRD-PARTY-NOTICES.md" />
   </Folder>
   <Folder Name="/tests/">
+    <File Path="tests\AGENTS.md" />
+    <File Path="tests\Directory.Build.props" />
     <Project Path="tests/Luminous.InSign.Tests/Luminous.InSign.Tests.csproj" />
   </Folder>
 </Solution>
