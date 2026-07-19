@@ -6,7 +6,7 @@ namespace Luminous.MimeTypeManagement.Tests;
 public sealed class MimeTypeHierarchyTests
 {
     [Fact]
-    public void Hierarchy_is_reflexive_after_alias_normalization()
+    public void HierarchyIsReflexiveAfterAliasNormalization()
     {
         var registry = new MimeTypeRegistryBuilder()
            .AddGroup(MimeType.Parse("application/json"), [MimeType.Parse("text/json")])
@@ -17,7 +17,7 @@ public sealed class MimeTypeHierarchyTests
     }
 
     [Fact]
-    public void Explicit_hierarchy_is_transitive_and_supports_multiple_parents()
+    public void ExplicitHierarchyIsTransitiveAndSupportsMultipleParents()
     {
         var registry = new MimeTypeRegistryBuilder()
            .AddParent(
@@ -40,7 +40,7 @@ public sealed class MimeTypeHierarchyTests
     [InlineData("application/vnd.example+zip", "application/zip")]
     [InlineData("text/csv", "text/plain")]
     [InlineData("image/png", "application/octet-stream")]
-    public void Default_implicit_rules_are_applied(string child, string parent)
+    public void DefaultImplicitRulesAreApplied(string child, string parent)
     {
         var registry = new MimeTypeRegistryBuilder().Build();
 
@@ -49,7 +49,7 @@ public sealed class MimeTypeHierarchyTests
     }
 
     [Fact]
-    public void Explicit_relations_take_precedence_over_implicit_rules()
+    public void ExplicitRelationsTakePrecedenceOverImplicitRules()
     {
         var registry = new MimeTypeRegistryBuilder()
            .AddParent("application/vnd.document+zip", "application/document")
@@ -61,7 +61,7 @@ public sealed class MimeTypeHierarchyTests
     }
 
     [Fact]
-    public void Implicit_rules_can_be_reconfigured_and_disabled_independently()
+    public void ImplicitRulesCanBeReconfiguredAndDisabledIndependently()
     {
         var builder = new MimeTypeRegistryBuilder
         {
@@ -91,7 +91,7 @@ public sealed class MimeTypeHierarchyTests
     }
 
     [Fact]
-    public void Self_targeting_implicit_rule_falls_through_to_the_next_rule()
+    public void SelfTargetingImplicitRuleFallsThroughToTheNextRule()
     {
         var builder = new MimeTypeRegistryBuilder();
         builder.SetSuffixParent("json", MimeType.Parse("application/vnd.example+json"));
@@ -101,7 +101,7 @@ public sealed class MimeTypeHierarchyTests
     }
 
     [Fact]
-    public void Diamond_hierarchies_traverse_shared_ancestors_only_once()
+    public void DiamondHierarchiesTraverseSharedAncestorsOnlyOnce()
     {
         var registry = new MimeTypeRegistryBuilder()
            .AddParent("application/child", "application/left")
@@ -115,7 +115,7 @@ public sealed class MimeTypeHierarchyTests
     }
 
     [Fact]
-    public void Container_relationship_is_hierarchy_not_aliasing()
+    public void ContainerRelationshipIsHierarchyNotAliasing()
     {
         var docx = MimeType.Parse("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         var registry = new MimeTypeRegistryBuilder()
@@ -129,7 +129,7 @@ public sealed class MimeTypeHierarchyTests
     }
 
     [Fact]
-    public void Parent_relations_normalize_alias_endpoints()
+    public void ParentRelationsNormalizeAliasEndpoints()
     {
         var registry = new MimeTypeRegistryBuilder()
            .AddGroup(

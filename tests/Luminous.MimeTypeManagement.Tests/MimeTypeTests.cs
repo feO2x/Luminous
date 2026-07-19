@@ -19,7 +19,7 @@ public sealed class MimeTypeTests
     [InlineData("text/plain ", "text/plain", "text", "plain", null)]
     [InlineData("text/plain \t", "text/plain", "text", "plain", null)]
     [InlineData("application/example+", "application/example+", "application", "example+", null)]
-    public void Parse_normalizes_and_exposes_components(
+    public void ParseNormalizesAndExposesComponents(
         string value,
         string expectedValue,
         string expectedTopLevelType,
@@ -47,14 +47,14 @@ public sealed class MimeTypeTests
     [InlineData("téxt/plain")]
     [InlineData("text/pl@in")]
     [InlineData("text/*")]
-    public void TryParse_rejects_invalid_restricted_names(string value)
+    public void TryParseRejectsInvalidRestrictedNames(string value)
     {
         MimeType.TryParse(value, out var result).Should().BeFalse();
         result.Should().Be(default(MimeType));
     }
 
     [Fact]
-    public void Parse_throws_for_invalid_input()
+    public void ParseThrowsForInvalidInput()
     {
         var action = () => MimeType.Parse("not-a-media-type");
 
@@ -62,7 +62,7 @@ public sealed class MimeTypeTests
     }
 
     [Fact]
-    public void ParseOptions_enforces_the_component_limit()
+    public void ParseOptionsEnforcesTheComponentLimit()
     {
         var options = new MimeTypeParseOptions { MaxNameLength = 4 };
 
@@ -73,7 +73,7 @@ public sealed class MimeTypeTests
     }
 
     [Fact]
-    public void ParseOptions_defaults_to_the_Rfc_limit()
+    public void ParseOptionsDefaultsToTheRfcLimit()
     {
         var nameAtLimit = new string('a', MimeTypeParseOptions.RfcMaxNameLength);
         var nameOverLimit = nameAtLimit + "a";
@@ -85,7 +85,7 @@ public sealed class MimeTypeTests
     }
 
     [Fact]
-    public void ParseOptions_rejects_invalid_limits_and_null_options()
+    public void ParseOptionsRejectsInvalidLimitsAndNullOptions()
     {
         var invalidOptions = () => new MimeTypeParseOptions { MaxNameLength = 0 };
         var nullOptions = () => MimeType.TryParse("text/plain", null!, out _);
@@ -95,7 +95,7 @@ public sealed class MimeTypeTests
     }
 
     [Fact]
-    public void Equality_is_value_based()
+    public void EqualityIsValueBased()
     {
         var first = MimeType.Parse("IMAGE/JPEG");
         var second = MimeType.Parse("image/jpeg");

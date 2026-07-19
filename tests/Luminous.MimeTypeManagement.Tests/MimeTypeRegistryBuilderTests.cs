@@ -9,7 +9,7 @@ namespace Luminous.MimeTypeManagement.Tests;
 public sealed class MimeTypeRegistryBuilderTests
 {
     [Fact]
-    public void Groups_is_a_live_read_only_view_of_the_configuration()
+    public void GroupsIsALiveReadOnlyViewOfTheConfiguration()
     {
         var first = Group("application/first", "first");
         var replacement = Group("application/replacement", "replacement");
@@ -24,7 +24,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void Build_reports_all_group_membership_duplicate_and_cycle_violations()
+    public void BuildReportsAllGroupMembershipDuplicateAndCycleViolations()
     {
         var shared = MimeType.Parse("application/shared");
         var first = new MimeTypeGroup(
@@ -54,7 +54,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void Build_detects_cycles_created_by_alias_normalization()
+    public void BuildDetectsCyclesCreatedByAliasNormalization()
     {
         var builder = new MimeTypeRegistryBuilder()
            .AddGroup(
@@ -70,7 +70,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void Build_validates_default_values_and_invalid_preferences_together()
+    public void BuildValidatesDefaultValuesAndInvalidPreferencesTogether()
     {
         var group = new MimeTypeGroup(
             default,
@@ -101,7 +101,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void Build_validates_preference_claims_and_duplicates()
+    public void BuildValidatesPreferenceClaimsAndDuplicates()
     {
         var group = new MimeTypeGroup(
             MimeType.Parse("application/example"),
@@ -125,7 +125,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void ToBuilder_round_trips_the_complete_configuration()
+    public void ToBuilderRoundTripsTheCompleteConfiguration()
     {
         var original = CreateConfiguredRegistry();
 
@@ -140,7 +140,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void ToBuilder_can_remove_and_replace_every_configuration_area()
+    public void ToBuilderCanRemoveAndReplaceEveryConfigurationArea()
     {
         var original = CreateConfiguredRegistry();
         var first = MimeType.Parse("application/first");
@@ -163,7 +163,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void Modifying_a_builder_from_ToBuilder_does_not_affect_the_original_registry()
+    public void ModifyingABuilderFromToBuilderDoesNotAffectTheOriginalRegistry()
     {
         var original = CreateConfiguredRegistry();
 
@@ -180,7 +180,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void Parse_options_can_be_replaced_after_construction()
+    public void ParseOptionsCanBeReplacedAfterConstruction()
     {
         var builder = new MimeTypeRegistryBuilder();
         var options = new MimeTypeParseOptions { MaxNameLength = 10 };
@@ -191,7 +191,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void String_group_overload_allows_omitted_aliases_and_extensions()
+    public void StringGroupOverloadAllowsOmittedAliasesAndExtensions()
     {
         var registry = new MimeTypeRegistryBuilder()
            .AddGroup("application/solo")
@@ -204,7 +204,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void Groups_can_be_removed_by_their_primary_name()
+    public void GroupsCanBeRemovedByTheirPrimaryName()
     {
         var builder = new MimeTypeRegistryBuilder().AddGroup("application/removable");
 
@@ -214,7 +214,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void Build_rejects_preferences_referencing_unknown_groups()
+    public void BuildRejectsPreferencesReferencingUnknownGroups()
     {
         var builder = new MimeTypeRegistryBuilder()
            .SetExtensionPreference(FileExtension.Parse("example"), MimeType.Parse("application/unknown"));
@@ -228,7 +228,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void ClearParents_removes_only_relations_of_the_supplied_child()
+    public void ClearParentsRemovesOnlyRelationsOfTheSuppliedChild()
     {
         var builder = new MimeTypeRegistryBuilder()
            .AddParent("application/child", "application/first")
@@ -244,7 +244,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void Builder_removal_and_replacement_report_missing_groups()
+    public void BuilderRemovalAndReplacementReportMissingGroups()
     {
         var builder = new MimeTypeRegistryBuilder();
 
@@ -258,7 +258,7 @@ public sealed class MimeTypeRegistryBuilderTests
     }
 
     [Fact]
-    public void Builder_guard_clauses_reject_invalid_configuration_calls()
+    public void BuilderGuardClausesRejectInvalidConfigurationCalls()
     {
         var builder = new MimeTypeRegistryBuilder();
         var nullGroup = () => builder.AddGroup(null!);

@@ -9,7 +9,7 @@ namespace Luminous.MimeTypeManagement.Tests;
 public sealed class MimeTypeRegistryTests
 {
     [Fact]
-    public void Registry_normalizes_primary_and_alias_members()
+    public void RegistryNormalizesPrimaryAndAliasMembers()
     {
         var registry = CreateRealWorldRegistry();
 
@@ -30,7 +30,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Registry_passes_valid_unknown_types_through()
+    public void RegistryPassesValidUnknownTypesThrough()
     {
         var registry = CreateRealWorldRegistry();
 
@@ -42,7 +42,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Registry_try_methods_reject_invalid_values_without_throwing()
+    public void RegistryTryMethodsRejectInvalidValuesWithoutThrowing()
     {
         var registry = new MimeTypeRegistryBuilder().Build();
 
@@ -61,7 +61,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Groups_expose_ordered_extensions_and_extension_lookup_is_bidirectional()
+    public void GroupsExposeOrderedExtensionsAndExtensionLookupIsBidirectional()
     {
         var first = new MimeTypeGroup(
             MimeType.Parse("model/stl"),
@@ -89,7 +89,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Extension_preference_can_override_registration_order()
+    public void ExtensionPreferenceCanOverrideRegistrationOrder()
     {
         var first = Group("model/stl", "stl");
         var second = Group("application/vnd.subtitle", "stl");
@@ -105,7 +105,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Group_without_extensions_has_no_primary_extension()
+    public void GroupWithoutExtensionsHasNoPrimaryExtension()
     {
         var group = new MimeTypeGroup(MimeType.Parse("application/octet-stream"));
 
@@ -114,7 +114,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Builder_string_overload_uses_its_parse_options()
+    public void BuilderStringOverloadUsesItsParseOptions()
     {
         var options = new MimeTypeParseOptions { MaxNameLength = 6 };
         var builder = new MimeTypeRegistryBuilder(options)
@@ -129,7 +129,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Registry_uses_configured_parse_limit_for_unknown_input()
+    public void RegistryUsesConfiguredParseLimitForUnknownInput()
     {
         var options = new MimeTypeParseOptions { MaxNameLength = 4 };
         var registry = new MimeTypeRegistryBuilder(options).Build();
@@ -141,7 +141,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Concurrent_reads_are_safe()
+    public void ConcurrentReadsAreSafe()
     {
         var registry = CreateRealWorldRegistry();
 
@@ -160,7 +160,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Known_string_normalization_allocates_no_memory_after_warmup()
+    public void KnownStringNormalizationAllocatesNoMemoryAfterWarmup()
     {
         var registry = CreateRealWorldRegistry();
         const string knownMimeType = "APPLICATION/X-ZIP-COMPRESSED; charset=binary";
@@ -180,7 +180,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Preferred_group_lookup_reports_unclaimed_extensions()
+    public void PreferredGroupLookupReportsUnclaimedExtensions()
     {
         var registry = CreateRealWorldRegistry();
 
@@ -189,7 +189,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void String_lookup_ignores_trailing_whitespace_before_parameters()
+    public void StringLookupIgnoresTrailingWhitespaceBeforeParameters()
     {
         var registry = CreateRealWorldRegistry();
 
@@ -204,7 +204,7 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Empty_builder_creates_a_usable_registry()
+    public void EmptyBuilderCreatesAUsableRegistry()
     {
         var registry = new MimeTypeRegistryBuilder().Build();
 

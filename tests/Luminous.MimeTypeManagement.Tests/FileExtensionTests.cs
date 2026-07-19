@@ -12,7 +12,7 @@ public sealed class FileExtensionTests
     [InlineData("*.PDF", ".pdf")]
     [InlineData(".Tar.GZ", ".tar.gz")]
     [InlineData("c++", ".c++")]
-    public void Parse_normalizes_supported_forms(string value, string expected)
+    public void ParseNormalizesSupportedForms(string value, string expected)
     {
         var result = FileExtension.Parse(value);
 
@@ -32,14 +32,14 @@ public sealed class FileExtensionTests
     [InlineData("path/pdf")]
     [InlineData("path\\pdf")]
     [InlineData(".é")]
-    public void TryParse_rejects_invalid_extensions(string value)
+    public void TryParseRejectsInvalidExtensions(string value)
     {
         FileExtension.TryParse(value, out var result).Should().BeFalse();
         result.Should().Be(default(FileExtension));
     }
 
     [Fact]
-    public void Parse_throws_for_invalid_input()
+    public void ParseThrowsForInvalidInput()
     {
         var action = () => FileExtension.Parse("*.tar.*");
 
@@ -47,7 +47,7 @@ public sealed class FileExtensionTests
     }
 
     [Fact]
-    public void Equality_is_value_based()
+    public void EqualityIsValueBased()
     {
         var first = FileExtension.Parse("JPG");
         var second = FileExtension.Parse(".jpg");

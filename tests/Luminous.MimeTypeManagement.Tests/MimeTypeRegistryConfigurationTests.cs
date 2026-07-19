@@ -9,7 +9,7 @@ namespace Luminous.MimeTypeManagement.Tests;
 public sealed class MimeTypeRegistryConfigurationTests
 {
     [Fact]
-    public void Registry_can_be_created_directly_from_a_configuration()
+    public void RegistryCanBeCreatedDirectlyFromAConfiguration()
     {
         var configuration = CreateConfiguration(
             groups:
@@ -36,7 +36,7 @@ public sealed class MimeTypeRegistryConfigurationTests
     }
 
     [Fact]
-    public void Registry_constructor_rejects_a_null_configuration()
+    public void RegistryConstructorRejectsANullConfiguration()
     {
         var act = () => new MimeTypeRegistry(null!);
 
@@ -44,7 +44,7 @@ public sealed class MimeTypeRegistryConfigurationTests
     }
 
     [Fact]
-    public void Registry_constructor_validates_the_configuration()
+    public void RegistryConstructorValidatesTheConfiguration()
     {
         var shared = MimeType.Parse("application/shared");
         var configuration = CreateConfiguration(
@@ -60,7 +60,7 @@ public sealed class MimeTypeRegistryConfigurationTests
     }
 
     [Fact]
-    public void Default_arrays_are_normalized_to_empty_arrays()
+    public void DefaultArraysAreNormalizedToEmptyArrays()
     {
         var configuration = CreateConfiguration();
 
@@ -75,7 +75,7 @@ public sealed class MimeTypeRegistryConfigurationTests
     }
 
     [Fact]
-    public void ParseOptions_cannot_be_assigned_null()
+    public void ParseOptionsCannotBeAssignedNull()
     {
         var act = () => new MimeTypeRegistryConfiguration
         {
@@ -95,7 +95,7 @@ public sealed class MimeTypeRegistryConfigurationTests
     }
 
     [Fact]
-    public void Null_group_entries_are_reported_as_violations()
+    public void NullGroupEntriesAreReportedAsViolations()
     {
         var configuration = CreateConfiguration(
             groups: [new MimeTypeGroup(MimeType.Parse("application/zip")), null!]
@@ -108,7 +108,7 @@ public sealed class MimeTypeRegistryConfigurationTests
     }
 
     [Fact]
-    public void Invalid_and_duplicate_suffix_keys_are_reported_as_violations()
+    public void InvalidAndDuplicateSuffixKeysAreReportedAsViolations()
     {
         var configuration = CreateConfiguration(
             suffixParents:
@@ -131,7 +131,7 @@ public sealed class MimeTypeRegistryConfigurationTests
     }
 
     [Fact]
-    public void Duplicate_and_incomplete_extension_preferences_are_reported_as_violations()
+    public void DuplicateAndIncompleteExtensionPreferencesAreReportedAsViolations()
     {
         var stl = FileExtension.Parse("stl");
         var configuration = CreateConfiguration(
@@ -154,7 +154,7 @@ public sealed class MimeTypeRegistryConfigurationTests
     }
 
     [Fact]
-    public void Configurations_from_a_builder_round_trip_through_ToBuilder()
+    public void ConfigurationsFromABuilderRoundTripThroughToBuilder()
     {
         var configuration = CreateConfiguration(
             groups: [new MimeTypeGroup(MimeType.Parse("application/zip"), extensions: [FileExtension.Parse("zip")])],
