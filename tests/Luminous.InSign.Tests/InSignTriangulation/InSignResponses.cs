@@ -33,6 +33,7 @@ public sealed record BeginExternResponse(
 
 public sealed record ExternUserResponse(
     int Error,
+    // ReSharper disable once NotAccessedPositionalProperty.Global -- required for deserialization in test scenario
     string? Message,
     string? ExternUser,
     string? ExternAccessLink
@@ -45,6 +46,7 @@ public sealed record DocumentsFullResponse(
 );
 
 public sealed record DocumentResponse(
+    // ReSharper disable once NotAccessedPositionalProperty.Global -- required for deserialization in test scenario
     [property: JsonPropertyName("docid")] string? DocId,
     [property: JsonPropertyName("numberofpages")] int NumberOfPages,
     List<AnnotationResponse>? Annotations
