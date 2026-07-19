@@ -13,6 +13,10 @@ Plans typically have acceptance criteria with check boxes. Check each box when y
 - `<TreatWarningsAsErrors>` is enabled in Release builds, so your code changes must not generate warnings.
 - Prefer `public` over `internal` when designing types. Users of the library should have access to the same APIs as we do. Hide lower level APIs in plain sight, see https://blog.ploeh.dk/2015/09/21/public-types-hidden-in-plain-sight/.
 
+## Code Analysis
+
+- After building the solution, run `dotnet jb inspectcode Luminous.slnx --no-build --swea --properties:Configuration=Release --format=Text --stdout --severity=SUGGESTION --no-updates`. Address or report findings introduced by your changes.
+
 ## Plan Rules
 
 Read ./ai-plans/AGENTS.md for details on how to write plans.
