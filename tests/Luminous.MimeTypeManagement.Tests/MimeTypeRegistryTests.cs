@@ -24,6 +24,9 @@ public sealed class MimeTypeRegistryTests
         group.Should().NotBeNull();
         group.PrimaryMimeType.Value.Should().Be("application/xml");
         group.Aliases.Select(alias => alias.Value).Should().Equal("text/xml");
+
+        registry.TryGetGroup(MimeType.Parse("text/xml"), out var parsedGroup).Should().BeTrue();
+        parsedGroup.Should().BeSameAs(group);
     }
 
     [Fact]
@@ -75,6 +78,7 @@ public sealed class MimeTypeRegistryTests
         second.Aliases.Should().BeEmpty();
         registry.GetGroups("*.STL").Select(group => group.PrimaryMimeType.Value)
            .Should().Equal("model/stl", "application/vnd.subtitle");
+        registry.GetGroups(FileExtension.Parse("stl")).Should().Equal(first, second);
         registry.TryGetGroups(FileExtension.Parse("stl"), out var groups).Should().BeTrue();
         groups.Should().HaveCount(2);
         registry.TryGetPreferredGroup("stl", out var preferred).Should().BeTrue();
@@ -127,8 +131,10 @@ public sealed class MimeTypeRegistryTests
     [Fact]
     public void Registry_uses_configured_parse_limit_for_unknown_input()
     {
-        var registry = new MimeTypeRegistryBuilder(new MimeTypeParseOptions { MaxNameLength = 4 }).Build();
+        var options = new MimeTypeParseOptions { MaxNameLength = 4 };
+        var registry = new MimeTypeRegistryBuilder(options).Build();
 
+        registry.ParseOptions.Should().BeSameAs(options);
         registry.Normalize("text/json").Value.Should().Be("text/json");
         registry.TryNormalize("audio/json", out _).Should().BeFalse();
         registry.TryGetGroup("audio/json", out _).Should().BeFalse();
@@ -171,6 +177,38 @@ public sealed class MimeTypeRegistryTests
         found.Should().BeTrue();
         normalized.Value.Should().Be("application/zip");
         allocated.Should().Be(0);
+    }
+
+    [Fact]
+    public void Registry_constructor_rejects_a_null_builder()
+    {
+        var act = () => new MimeTypeRegistry(null!);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Preferred_group_lookup_reports_unclaimed_extensions()
+    {
+        var registry = CreateRealWorldRegistry();
+
+        registry.TryGetPreferredGroup(FileExtension.Parse("unknown"), out var group).Should().BeFalse();
+        group.Should().BeNull();
+    }
+
+    [Fact]
+    public void String_lookup_ignores_trailing_whitespace_before_parameters()
+    {
+        var registry = CreateRealWorldRegistry();
+
+        registry.TryNormalize("APPLICATION/X-ZIP-COMPRESSED \t ; charset=binary", out var withParameters)
+           .Should().BeTrue();
+        withParameters.Value.Should().Be("application/zip");
+
+        registry.TryNormalize("application/x-zip-compressed \t", out var withoutParameters).Should().BeTrue();
+        withoutParameters.Value.Should().Be("application/zip");
+
+        registry.TryNormalize(" \t; charset=binary", out _).Should().BeFalse();
     }
 
     [Fact]

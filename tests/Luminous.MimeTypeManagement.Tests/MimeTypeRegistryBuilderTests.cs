@@ -9,6 +9,21 @@ namespace Luminous.MimeTypeManagement.Tests;
 public sealed class MimeTypeRegistryBuilderTests
 {
     [Fact]
+    public void Groups_is_a_live_read_only_view_of_the_configuration()
+    {
+        var first = Group("application/first", "first");
+        var replacement = Group("application/replacement", "replacement");
+        var builder = new MimeTypeRegistryBuilder().AddGroup(first);
+        var groups = builder.Groups;
+
+        groups.Should().ContainSingle().Which.Should().BeSameAs(first);
+
+        builder.ReplaceGroup(first.PrimaryMimeType, replacement);
+
+        groups.Should().ContainSingle().Which.Should().BeSameAs(replacement);
+    }
+
+    [Fact]
     public void Build_reports_all_group_membership_duplicate_and_cycle_violations()
     {
         var shared = MimeType.Parse("application/shared");
@@ -145,6 +160,69 @@ public sealed class MimeTypeRegistryBuilderTests
 
         original.TryGetGroup("application/second", out _).Should().BeTrue();
         original.IsSubtypeOf("application/first", "application/root").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Parse_options_can_be_replaced_after_construction()
+    {
+        var builder = new MimeTypeRegistryBuilder();
+        var options = new MimeTypeParseOptions { MaxNameLength = 10 };
+
+        builder.ParseOptions = options;
+
+        builder.ParseOptions.Should().BeSameAs(options);
+    }
+
+    [Fact]
+    public void String_group_overload_allows_omitted_aliases_and_extensions()
+    {
+        var registry = new MimeTypeRegistryBuilder()
+           .AddGroup("application/solo")
+           .Build();
+
+        registry.TryGetGroup("application/solo", out var group).Should().BeTrue();
+        group.Should().NotBeNull();
+        group.Aliases.Should().BeEmpty();
+        group.Extensions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Groups_can_be_removed_by_their_primary_name()
+    {
+        var builder = new MimeTypeRegistryBuilder().AddGroup("application/removable");
+
+        builder.RemoveGroup("application/removable").Should().BeTrue();
+
+        builder.Groups.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Build_rejects_preferences_referencing_unknown_groups()
+    {
+        var builder = new MimeTypeRegistryBuilder()
+           .SetExtensionPreference(FileExtension.Parse("example"), MimeType.Parse("application/unknown"));
+
+        var act = builder.Build;
+
+        act.Should().Throw<MimeTypeRegistryValidationException>()
+           .Which.Violations.Should().ContainSingle(
+                violation => violation.Contains("non-claiming", StringComparison.Ordinal)
+            );
+    }
+
+    [Fact]
+    public void ClearParents_removes_only_relations_of_the_supplied_child()
+    {
+        var builder = new MimeTypeRegistryBuilder()
+           .AddParent("application/child", "application/first")
+           .AddParent("application/child", "application/second")
+           .AddParent("application/other", "application/first");
+
+        builder.ClearParents(MimeType.Parse("application/child")).Should().Be(2);
+
+        var registry = builder.Build();
+        registry.IsSubtypeOf("application/child", "application/first").Should().BeFalse();
+        registry.IsSubtypeOf("application/other", "application/first").Should().BeTrue();
     }
 
     [Fact]

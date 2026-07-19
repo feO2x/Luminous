@@ -20,7 +20,10 @@ public sealed class MimeTypeHierarchyTests
     public void Explicit_hierarchy_is_transitive_and_supports_multiple_parents()
     {
         var registry = new MimeTypeRegistryBuilder()
-           .AddParent("application/child", "application/first")
+           .AddParentRelation(
+                MimeType.Parse("application/child"),
+                MimeType.Parse("application/first")
+            )
            .AddParent("application/child", "application/second")
            .AddParent("application/first", "application/root")
            .Build();
@@ -69,7 +72,7 @@ public sealed class MimeTypeHierarchyTests
             FallbackParent = MimeType.Parse("application/custom-fallback")
         };
         builder.RemoveSuffixParent("json").Should().BeTrue();
-        builder.SetSuffixParent("+yaml", MimeType.Parse("application/yaml"));
+        builder.SetSuffixParent("+yaml", "application/yaml").Should().BeSameAs(builder);
         var disabled = builder.Build();
 
         disabled.IsSubtypeOf("application/vnd.example+yaml", "application/yaml").Should().BeFalse();
@@ -95,6 +98,20 @@ public sealed class MimeTypeHierarchyTests
         var registry = builder.Build();
 
         registry.IsSubtypeOf("application/vnd.example+json", "application/octet-stream").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Diamond_hierarchies_traverse_shared_ancestors_only_once()
+    {
+        var registry = new MimeTypeRegistryBuilder()
+           .AddParent("application/child", "application/left")
+           .AddParent("application/child", "application/right")
+           .AddParent("application/left", "application/root")
+           .AddParent("application/right", "application/root")
+           .Build();
+
+        registry.IsSubtypeOf("application/child", "application/root").Should().BeTrue();
+        registry.IsSubtypeOf("application/child", "application/unrelated").Should().BeFalse();
     }
 
     [Fact]
