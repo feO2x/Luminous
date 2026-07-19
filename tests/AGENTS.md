@@ -10,3 +10,8 @@
 - During Integration Tests, at least one I/O call to third-party systems like a database or Web API is made. Some of the third-party system calls can be replaced with Test Doubles or Fakes (according to XUnit Test Patterns by Gerard Meszaros).
 - In End-to-End (E2E) Tests, I/O calls must not be replaced with Test Doubles or Fakes.
 - Keep Code Coverage at least above 95%. Use Microsoft.Testing.Extensions.CodeCoverage to measure it.
+
+## How to run
+
+- `dotnet test Luminous.slnx` for regular test runs.
+- `dotnet test Luminous.slnx -- --coverage --coverage-output-format cobertura` for test coverage metrics.
