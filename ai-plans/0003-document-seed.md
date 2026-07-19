@@ -1,5 +1,7 @@
 # Initial Document Seed for the MIME Type Registry
 
+> **Post-implementation note (2026-07-19):** the per-category `AddXXXFormats` methods on `DocumentSeed` are **public** — not private as originally specified in the Data representation paragraph — so consumers can compose custom seeds from a subset of categories.
+
 ## Rationale
 
 `Luminous.MimeTypeManagement` currently ships only empty builders: every consumer must assemble groups, aliases, hierarchy edges, and extension mappings from scratch. This plan adds a first-party, hand-curated seed covering formats relevant to document management systems, so consumers get useful normalization and extension lookups out of the box while retaining full configurability through the existing builder APIs.
@@ -8,14 +10,14 @@ The coverage target is the format list of [Xberg](https://github.com/xberg-io/xb
 
 ## Acceptance Criteria
 
-- [ ] A public static class `DocumentSeed` in `Luminous.MimeTypeManagement` exposes a shared immutable `Registry` property and a `CreateBuilder()` method returning a fresh, fully populated `MimeTypeRegistryBuilder` that callers can modify before calling `Build()`.
-- [ ] Every file extension in the pinned Xberg snapshot (July 2026, stored as static test data, no network I/O) resolves to at least one group in the seeded registry.
-- [ ] The litmus normalizations work out of the box: `application/x-zip-compressed` → `application/zip`, `text/xml` → `application/xml`, `image/pjpeg` → `image/jpeg`.
-- [ ] ZIP-based container formats without a `+zip` suffix (OOXML, ODF, iWork) are subtypes of `application/zip` via explicit hierarchy edges, while suffix-carrying types reach their parents through the structured-syntax suffix rules alone (`application/epub+zip` → `application/zip`, `image/svg+xml` → `application/xml`).
-- [ ] `.webm` resolves to both the `audio/webm` and `video/webm` groups, with `video/webm` as the preferred group.
-- [ ] Every group's primary MIME type follows the canonical-selection policy documented in Technical Details.
-- [ ] The seeded registry contains exactly the groups, aliases, extensions, parent edges, and preference orders specified in the List of MIME Type Groups section of this plan.
-- [ ] The seeded builder builds without validation errors, the test suite covers the seed through sociable tests against the public API, overall coverage stays above 95%, the Release build is warning-free, and no new package dependencies are introduced.
+- [x] A public static class `DocumentSeed` in `Luminous.MimeTypeManagement` exposes a shared immutable `Registry` property and a `CreateBuilder()` method returning a fresh, fully populated `MimeTypeRegistryBuilder` that callers can modify before calling `Build()`.
+- [x] Every file extension in the pinned Xberg snapshot (July 2026, stored as static test data, no network I/O) resolves to at least one group in the seeded registry.
+- [x] The litmus normalizations work out of the box: `application/x-zip-compressed` → `application/zip`, `text/xml` → `application/xml`, `image/pjpeg` → `image/jpeg`.
+- [x] ZIP-based container formats without a `+zip` suffix (OOXML, ODF, iWork) are subtypes of `application/zip` via explicit hierarchy edges, while suffix-carrying types reach their parents through the structured-syntax suffix rules alone (`application/epub+zip` → `application/zip`, `image/svg+xml` → `application/xml`).
+- [x] `.webm` resolves to both the `audio/webm` and `video/webm` groups, with `video/webm` as the preferred group.
+- [x] Every group's primary MIME type follows the canonical-selection policy documented in Technical Details.
+- [x] The seeded registry contains exactly the groups, aliases, extensions, parent edges, and preference orders specified in the List of MIME Type Groups section of this plan.
+- [x] The seeded builder builds without validation errors, the test suite covers the seed through sociable tests against the public API, overall coverage stays above 95%, the Release build is warning-free, and no new package dependencies are introduced.
 
 ## Technical Details
 
@@ -31,7 +33,7 @@ public static class DocumentSeed
 
 `CreateBuilder()` returns a new builder per call because builders are mutable and not thread-safe; `Registry` may be a shared lazy singleton because `MimeTypeRegistry` is immutable. The name is deliberately neither "Default" (which would over-promise universal coverage) nor "Xberg" (which would couple the public API to a third-party project). Future seeds with different scopes can sit alongside it under the same naming pattern.
 
-**Data representation**: hand-written C# calls against `MimeTypeRegistryBuilder`, organized by category (office, images, audio/video, web/data, email/archives, academic) in private methods or partial class files. No embedded XML/JSON resources and no parsing at seed time — compile-time checking and reviewable diffs are the point of this first seed.
+**Data representation**: hand-written C# calls against `MimeTypeRegistryBuilder`, organized by category (office, images, audio/video, web/data, email/archives, academic) in public methods across partial class files. No embedded XML/JSON resources and no parsing at seed time — compile-time checking and reviewable diffs are the point of this first seed.
 
 **Canonical-selection policy** (applied in order; de-facto and legacy variants observed in the wild become aliases):
 
