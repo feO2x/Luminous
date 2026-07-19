@@ -2,6 +2,28 @@ using System;
 
 namespace Luminous.MimeTypeManagement;
 
+/// <summary>
+/// Represents an RFC 6838 media type name, normalized for reliable comparison and lookup.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Parsing is case-insensitive and stores the result in lowercase. Parameters such as
+/// <c>charset=utf-8</c> are accepted but discarded, so they do not affect identity. Use this type when
+/// a complete content type must be reduced to its media type before registry lookup.
+/// </para>
+/// <para>
+/// Wildcard ranges such as <c>image/*</c> are not media type names and are therefore rejected. The
+/// default value is an invalid sentinel; create usable values with <see cref="Parse(ReadOnlySpan{char})"/>
+/// or <see cref="TryParse(ReadOnlySpan{char}, out MimeType)"/>.
+/// </para>
+/// <example>
+/// <code>
+/// var mimeType = MimeType.Parse("Application/Vnd.Example+JSON; charset=utf-8");
+/// // mimeType.Value == "application/vnd.example+json"
+/// // mimeType.Suffix == "json"
+/// </code>
+/// </example>
+/// </remarks>
 public readonly struct MimeType : IEquatable<MimeType>
 {
     private readonly string? _value;
@@ -14,28 +36,90 @@ public readonly struct MimeType : IEquatable<MimeType>
         Suffix = suffix;
     }
 
+    /// <summary>
+    /// Gets the normalized lowercase <c>type/subtype</c> name without parameters.
+    /// </summary>
+    /// <value>An empty string when this instance is the default value.</value>
     public string Value => _value ?? string.Empty;
 
+    /// <summary>
+    /// Gets the component before the slash, such as <c>application</c> or <c>image</c>.
+    /// </summary>
     public string TopLevelType => field ?? string.Empty;
 
+    /// <summary>
+    /// Gets the component after the slash, including any structured-syntax suffix.
+    /// </summary>
+    /// <example><c>vnd.example+json</c> for <c>application/vnd.example+json</c>.</example>
     public string SubType => field ?? string.Empty;
 
+    /// <summary>
+    /// Gets the same subtype component as <see cref="SubType"/>.
+    /// </summary>
     public string Subtype => SubType;
 
+    /// <summary>
+    /// Gets the segment after the final <c>+</c> in the subtype, or <see langword="null"/> when no
+    /// structured-syntax suffix is present.
+    /// </summary>
     public string? Suffix { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether this instance is the uninitialized default value.
+    /// </summary>
+    /// <remarks>A default value is not a valid MIME type and cannot be normalized by a registry.</remarks>
     public bool IsDefault => _value is null;
 
+    /// <summary>
+    /// Parses and normalizes a media type name using the RFC 6838 component-length limit.
+    /// </summary>
+    /// <param name="value">
+    /// A <c>type/subtype</c> name, optionally followed by parameters. ASCII casing is ignored.
+    /// </param>
+    /// <returns>The normalized media type without parameters.</returns>
+    /// <exception cref="FormatException"><paramref name="value"/> is not a valid RFC 6838 media type name.</exception>
     public static MimeType Parse(ReadOnlySpan<char> value) => Parse(value, MimeTypeParseOptions.Default);
 
+    /// <summary>
+    /// Parses and normalizes a media type name using a caller-defined component-length limit.
+    /// </summary>
+    /// <param name="value">
+    /// A <c>type/subtype</c> name, optionally followed by parameters. ASCII casing is ignored.
+    /// </param>
+    /// <param name="options">The parsing limits to enforce.</param>
+    /// <returns>The normalized media type without parameters.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="FormatException"><paramref name="value"/> is not valid under the supplied options.</exception>
     public static MimeType Parse(ReadOnlySpan<char> value, MimeTypeParseOptions options) =>
         !TryParse(value, options, out var mimeType) ?
             throw new FormatException("The value is not a valid RFC 6838 media type name.") :
             mimeType;
 
+    /// <summary>
+    /// Attempts to parse and normalize a media type name using the RFC 6838 component-length limit.
+    /// </summary>
+    /// <param name="value">
+    /// A <c>type/subtype</c> name, optionally followed by parameters. ASCII casing is ignored.
+    /// </param>
+    /// <param name="mimeType">
+    /// The normalized media type when parsing succeeds; otherwise, the default value.
+    /// </param>
+    /// <returns><see langword="true"/> when <paramref name="value"/> is valid; otherwise, <see langword="false"/>.</returns>
     public static bool TryParse(ReadOnlySpan<char> value, out MimeType mimeType) =>
         TryParse(value, MimeTypeParseOptions.Default, out mimeType);
 
+    /// <summary>
+    /// Attempts to parse and normalize a media type name using a caller-defined component-length limit.
+    /// </summary>
+    /// <param name="value">
+    /// A <c>type/subtype</c> name, optionally followed by parameters. ASCII casing is ignored.
+    /// </param>
+    /// <param name="options">The parsing limits to enforce.</param>
+    /// <param name="mimeType">
+    /// The normalized media type when parsing succeeds; otherwise, the default value.
+    /// </param>
+    /// <returns><see langword="true"/> when <paramref name="value"/> is valid; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public static bool TryParse(
         ReadOnlySpan<char> value,
         MimeTypeParseOptions options,
@@ -91,16 +175,39 @@ public readonly struct MimeType : IEquatable<MimeType>
         return true;
     }
 
+    /// <summary>
+    /// Determines whether this instance and another instance contain the same normalized media type.
+    /// </summary>
+    /// <param name="other">The media type to compare with this instance.</param>
+    /// <returns><see langword="true"/> when the normalized values are equal.</returns>
     public bool Equals(MimeType other) => string.Equals(_value, other._value, StringComparison.Ordinal);
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is MimeType other && Equals(other);
 
+    /// <inheritdoc/>
     public override int GetHashCode() => _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
 
+    /// <summary>
+    /// Returns the normalized media type name without parameters.
+    /// </summary>
+    /// <returns><see cref="Value"/>.</returns>
     public override string ToString() => Value;
 
+    /// <summary>
+    /// Determines whether two instances contain the same normalized media type.
+    /// </summary>
+    /// <param name="left">The first media type.</param>
+    /// <param name="right">The second media type.</param>
+    /// <returns><see langword="true"/> when the normalized values are equal.</returns>
     public static bool operator ==(MimeType left, MimeType right) => left.Equals(right);
 
+    /// <summary>
+    /// Determines whether two instances contain different normalized media types.
+    /// </summary>
+    /// <param name="left">The first media type.</param>
+    /// <param name="right">The second media type.</param>
+    /// <returns><see langword="true"/> when the normalized values differ.</returns>
     public static bool operator !=(MimeType left, MimeType right) => !left.Equals(right);
 
     private static bool IsRestrictedName(ReadOnlySpan<char> value)
