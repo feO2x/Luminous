@@ -222,6 +222,7 @@ public readonly struct MimeType : IEquatable<MimeType>
     /// </summary>
     /// <param name="value">The span to trim.</param>
     /// <returns>The span without trailing SP or HTAB characters.</returns>
+    // ReSharper disable once MemberCanBePrivate.Global -- we want this to be a public API
     public static ReadOnlySpan<char> TrimTrailingWhiteSpace(ReadOnlySpan<char> value) =>
         // Trim only SP and HTAB via TrimEnd(" \t") instead of the parameterless TrimEnd(), which
         // would also strip '\r', '\n', U+00A0, and every other char.IsWhiteSpace character. Those
