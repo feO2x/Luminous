@@ -180,14 +180,6 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Registry_constructor_rejects_a_null_builder()
-    {
-        var act = () => new MimeTypeRegistry(null!);
-
-        act.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void Preferred_group_lookup_reports_unclaimed_extensions()
     {
         var registry = CreateRealWorldRegistry();
@@ -212,14 +204,13 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void Empty_registry_constructors_create_usable_registries()
+    public void Empty_builder_creates_a_usable_registry()
     {
-        var first = new MimeTypeRegistry();
-        var second = new MimeTypeRegistry(new MimeTypeRegistryBuilder());
+        var registry = new MimeTypeRegistryBuilder().Build();
 
-        first.Normalize("text/plain").Value.Should().Be("text/plain");
-        second.IsSubtypeOf("image/png", "application/octet-stream").Should().BeTrue();
-        first.Groups.Should().BeEmpty();
+        registry.Normalize("text/plain").Value.Should().Be("text/plain");
+        registry.IsSubtypeOf("image/png", "application/octet-stream").Should().BeTrue();
+        registry.Groups.Should().BeEmpty();
     }
 
     private static MimeTypeRegistry CreateRealWorldRegistry() =>

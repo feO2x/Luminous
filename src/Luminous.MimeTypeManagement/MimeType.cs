@@ -13,8 +13,8 @@ namespace Luminous.MimeTypeManagement;
 /// </para>
 /// <para>
 /// Wildcard ranges such as <c>image/*</c> are not media type names and are therefore rejected. The
-/// default value is an invalid sentinel; create usable values with <see cref="Parse(ReadOnlySpan{char})"/>
-/// or <see cref="TryParse(ReadOnlySpan{char}, out MimeType)"/>.
+/// default value is an invalid sentinel; create usable values with <see cref="Parse(ReadOnlySpan{char})" />
+/// or <see cref="TryParse(ReadOnlySpan{char}, out MimeType)" />.
 /// </para>
 /// <example>
 /// <code>
@@ -26,6 +26,16 @@ namespace Luminous.MimeTypeManagement;
 /// </remarks>
 public readonly struct MimeType : IEquatable<MimeType>
 {
+    /// <summary>
+    /// The message of the <see cref="FormatException" /> thrown when a value is not a valid RFC 6838
+    /// media type name.
+    /// </summary>
+    /// <remarks>
+    /// Both <see cref="Parse(ReadOnlySpan{char}, MimeTypeParseOptions)" /> and
+    /// <see cref="MimeTypeRegistry.Normalize(ReadOnlySpan{char})" /> use this message.
+    /// </remarks>
+    public const string InvalidMediaTypeNameMessage = "The value is not a valid RFC 6838 media type name.";
+
     private readonly string? _value;
 
     private MimeType(string value, string topLevelType, string subType, string? suffix)
@@ -54,12 +64,7 @@ public readonly struct MimeType : IEquatable<MimeType>
     public string SubType => field ?? string.Empty;
 
     /// <summary>
-    /// Gets the same subtype component as <see cref="SubType"/>.
-    /// </summary>
-    public string Subtype => SubType;
-
-    /// <summary>
-    /// Gets the segment after the final <c>+</c> in the subtype, or <see langword="null"/> when no
+    /// Gets the segment after the final <c>+</c> in the subtype, or <see langword="null" /> when no
     /// structured-syntax suffix is present.
     /// </summary>
     public string? Suffix { get; }
@@ -77,7 +82,7 @@ public readonly struct MimeType : IEquatable<MimeType>
     /// A <c>type/subtype</c> name, optionally followed by parameters. ASCII casing is ignored.
     /// </param>
     /// <returns>The normalized media type without parameters.</returns>
-    /// <exception cref="FormatException"><paramref name="value"/> is not a valid RFC 6838 media type name.</exception>
+    /// <exception cref="FormatException"><paramref name="value" /> is not a valid RFC 6838 media type name.</exception>
     public static MimeType Parse(ReadOnlySpan<char> value) => Parse(value, MimeTypeParseOptions.Default);
 
     /// <summary>
@@ -88,11 +93,11 @@ public readonly struct MimeType : IEquatable<MimeType>
     /// </param>
     /// <param name="options">The parsing limits to enforce.</param>
     /// <returns>The normalized media type without parameters.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
-    /// <exception cref="FormatException"><paramref name="value"/> is not valid under the supplied options.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="options" /> is <see langword="null" />.</exception>
+    /// <exception cref="FormatException"><paramref name="value" /> is not valid under the supplied options.</exception>
     public static MimeType Parse(ReadOnlySpan<char> value, MimeTypeParseOptions options) =>
         !TryParse(value, options, out var mimeType) ?
-            throw new FormatException("The value is not a valid RFC 6838 media type name.") :
+            throw new FormatException(InvalidMediaTypeNameMessage) :
             mimeType;
 
     /// <summary>
@@ -104,7 +109,7 @@ public readonly struct MimeType : IEquatable<MimeType>
     /// <param name="mimeType">
     /// The normalized media type when parsing succeeds; otherwise, the default value.
     /// </param>
-    /// <returns><see langword="true"/> when <paramref name="value"/> is valid; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true" /> when <paramref name="value" /> is valid; otherwise, <see langword="false" />.</returns>
     public static bool TryParse(ReadOnlySpan<char> value, out MimeType mimeType) =>
         TryParse(value, MimeTypeParseOptions.Default, out mimeType);
 
@@ -118,8 +123,8 @@ public readonly struct MimeType : IEquatable<MimeType>
     /// <param name="mimeType">
     /// The normalized media type when parsing succeeds; otherwise, the default value.
     /// </param>
-    /// <returns><see langword="true"/> when <paramref name="value"/> is valid; otherwise, <see langword="false"/>.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <returns><see langword="true" /> when <paramref name="value" /> is valid; otherwise, <see langword="false" />.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="options" /> is <see langword="null" />.</exception>
     public static bool TryParse(
         ReadOnlySpan<char> value,
         MimeTypeParseOptions options,
@@ -129,20 +134,7 @@ public readonly struct MimeType : IEquatable<MimeType>
         ArgumentNullException.ThrowIfNull(options);
         mimeType = default;
 
-        var mediaTypeLength = value.IndexOf(';');
-        if (mediaTypeLength < 0)
-        {
-            mediaTypeLength = value.Length;
-        }
-        else
-        {
-            while (mediaTypeLength > 0 && IsOptionalWhitespace(value[mediaTypeLength - 1]))
-            {
-                mediaTypeLength--;
-            }
-        }
-
-        var mediaType = value[..mediaTypeLength];
+        var mediaType = TrimMediaType(value);
         var separatorIndex = mediaType.IndexOf('/');
         if (separatorIndex <= 0 || separatorIndex != mediaType.LastIndexOf('/'))
         {
@@ -179,19 +171,19 @@ public readonly struct MimeType : IEquatable<MimeType>
     /// Determines whether this instance and another instance contain the same normalized media type.
     /// </summary>
     /// <param name="other">The media type to compare with this instance.</param>
-    /// <returns><see langword="true"/> when the normalized values are equal.</returns>
+    /// <returns><see langword="true" /> when the normalized values are equal.</returns>
     public bool Equals(MimeType other) => string.Equals(_value, other._value, StringComparison.Ordinal);
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override bool Equals(object? obj) => obj is MimeType other && Equals(other);
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override int GetHashCode() => _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
 
     /// <summary>
     /// Returns the normalized media type name without parameters.
     /// </summary>
-    /// <returns><see cref="Value"/>.</returns>
+    /// <returns><see cref="Value" />.</returns>
     public override string ToString() => Value;
 
     /// <summary>
@@ -199,7 +191,7 @@ public readonly struct MimeType : IEquatable<MimeType>
     /// </summary>
     /// <param name="left">The first media type.</param>
     /// <param name="right">The second media type.</param>
-    /// <returns><see langword="true"/> when the normalized values are equal.</returns>
+    /// <returns><see langword="true" /> when the normalized values are equal.</returns>
     public static bool operator ==(MimeType left, MimeType right) => left.Equals(right);
 
     /// <summary>
@@ -207,19 +199,59 @@ public readonly struct MimeType : IEquatable<MimeType>
     /// </summary>
     /// <param name="left">The first media type.</param>
     /// <param name="right">The second media type.</param>
-    /// <returns><see langword="true"/> when the normalized values differ.</returns>
+    /// <returns><see langword="true" /> when the normalized values differ.</returns>
     public static bool operator !=(MimeType left, MimeType right) => !left.Equals(right);
+
+    /// <summary>
+    /// Returns the media type portion of a content type value, without parameters or trailing
+    /// optional whitespace.
+    /// </summary>
+    /// <param name="value">A content type value, such as <c>text/html; charset=utf-8</c>.</param>
+    /// <returns>
+    /// The part before the first <c>;</c>, trimmed with <see cref="TrimTrailingWhiteSpace" />. When
+    /// <paramref name="value" /> contains no parameters, it is returned trimmed as a whole.
+    /// </returns>
+    public static ReadOnlySpan<char> TrimMediaType(ReadOnlySpan<char> value)
+    {
+        var parameterIndex = value.IndexOf(';');
+        return TrimTrailingWhiteSpace(parameterIndex < 0 ? value : value[..parameterIndex]);
+    }
+
+    /// <summary>
+    /// Removes trailing SP and HTAB characters (the RFC 7230 OWS production) from a span.
+    /// </summary>
+    /// <param name="value">The span to trim.</param>
+    /// <returns>The span without trailing SP or HTAB characters.</returns>
+    public static ReadOnlySpan<char> TrimTrailingWhiteSpace(ReadOnlySpan<char> value) =>
+        // Trim only SP and HTAB via TrimEnd(" \t") instead of the parameterless TrimEnd(), which
+        // would also strip '\r', '\n', U+00A0, and every other char.IsWhiteSpace character. Those
+        // are invalid in a media type name and must remain in place so that IsRestrictedName
+        // rejects the value instead of silently accepting it.
+        value.TrimEnd(" \t");
+
+    /// <summary>
+    /// Determines whether a value is a valid RFC 6838 structured-syntax suffix name.
+    /// </summary>
+    /// <param name="suffix">The suffix to validate, without a leading <c>+</c>.</param>
+    /// <returns>
+    /// <see langword="true" /> when <paramref name="suffix" /> is a non-empty, valid suffix;
+    /// otherwise, <see langword="false" />.
+    /// </returns>
+    public static bool IsValidSuffix(string? suffix) =>
+        !string.IsNullOrEmpty(suffix) &&
+        TryParse($"application/x+{suffix}", out var mimeType) &&
+        string.Equals(mimeType.Suffix, suffix, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsRestrictedName(ReadOnlySpan<char> value)
     {
-        if (value.IsEmpty || !IsAsciiAlphaNumeric(value[0]))
+        if (value.IsEmpty || !char.IsAsciiLetterOrDigit(value[0]))
         {
             return false;
         }
 
         foreach (var character in value[1..])
         {
-            if (!IsAsciiAlphaNumeric(character) &&
+            if (!char.IsAsciiLetterOrDigit(character) &&
                 character is not '!' and
                              not '#' and
                              not '$' and
@@ -236,9 +268,4 @@ public readonly struct MimeType : IEquatable<MimeType>
 
         return true;
     }
-
-    private static bool IsAsciiAlphaNumeric(char value) =>
-        value is >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z';
-
-    private static bool IsOptionalWhitespace(char value) => value is ' ' or '\t';
 }

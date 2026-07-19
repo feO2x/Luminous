@@ -42,7 +42,7 @@ public sealed class MimeTypeRegistryBuilderTests
         var act = builder.Build;
 
         var exception = act.Should().Throw<MimeTypeRegistryValidationException>().Which;
-        exception.Violations.Should().HaveCountGreaterThanOrEqualTo(4);
+        exception.Violations.Should().HaveCount(4);
         exception.Violations.Should()
            .Contain(violation => violation.Contains("duplicate MIME type", StringComparison.Ordinal));
         exception.Violations.Should()
@@ -88,7 +88,16 @@ public sealed class MimeTypeRegistryBuilderTests
         var act = builder.Build;
 
         act.Should().Throw<MimeTypeRegistryValidationException>()
-           .Which.Violations.Should().HaveCountGreaterThan(7);
+           .Which.Violations.Should().BeEquivalentTo(
+                "Group 1 contains an invalid default primary MIME type.",
+                "Group 1 contains an invalid default alias MIME type.",
+                "Group 1 contains an invalid default file extension.",
+                "An explicit parent relation contains a default MIME type.",
+                "The text rule parent is a default MIME type.",
+                "The fallback rule parent is a default MIME type.",
+                "The '+custom' suffix parent is a default MIME type.",
+                "An extension preference uses a default file extension."
+            );
     }
 
     [Fact]
@@ -107,59 +116,67 @@ public sealed class MimeTypeRegistryBuilderTests
 
         var act = builder.Build;
 
-        act.Should().Throw<MimeTypeRegistryValidationException>()
-           .Which.Violations.Should().HaveCount(3);
+        var exception = act.Should().Throw<MimeTypeRegistryValidationException>().Which;
+        exception.Violations.Should().HaveCount(3);
+        exception.Violations.Should()
+           .ContainSingle(violation => violation.Contains("repeats", StringComparison.Ordinal));
+        exception.Violations.Where(violation => violation.Contains("non-claiming", StringComparison.Ordinal))
+           .Should().HaveCount(2);
     }
 
     [Fact]
-    public void ToBuilder_round_trips_and_can_modify_every_configuration_area()
+    public void ToBuilder_round_trips_the_complete_configuration()
     {
-        var first = Group("application/first", "shared");
-        var second = Group("application/second", "shared");
-        var originalBuilder = new MimeTypeRegistryBuilder()
-           .AddGroup(first)
-           .AddGroup(second)
-           .AddParent("application/first", "application/root")
-           .SetExtensionPreference(FileExtension.Parse("shared"), second.PrimaryMimeType);
-        originalBuilder.ClearSuffixParents();
-        originalBuilder.SetSuffixParent("custom", MimeType.Parse("application/custom"));
-        originalBuilder.TextPlainRuleEnabled = false;
-        originalBuilder.FallbackRuleEnabled = false;
-        var original = originalBuilder.Build();
+        var original = CreateConfiguredRegistry();
 
         var roundTripped = original.ToBuilder().Build();
-        roundTripped.GetGroups("shared").Should().Equal(second, first);
+
+        roundTripped.GetGroups("shared").Select(group => group.PrimaryMimeType.Value)
+           .Should().Equal("application/second", "application/first");
         roundTripped.IsSubtypeOf("application/first", "application/root").Should().BeTrue();
         roundTripped.IsSubtypeOf("application/vnd.test+custom", "application/custom").Should().BeTrue();
         roundTripped.IsSubtypeOf("text/csv", "text/plain").Should().BeFalse();
+        roundTripped.IsSubtypeOf("image/png", "application/octet-stream").Should().BeFalse();
+    }
 
-        var modifiedBuilder = original.ToBuilder();
-        modifiedBuilder.RemoveGroup(second.PrimaryMimeType).Should().BeTrue();
-        modifiedBuilder.ReplaceGroup(
-            first.PrimaryMimeType,
-            Group("application/replacement", "replacement")
-        );
-        modifiedBuilder.RemoveParent(
-            first.PrimaryMimeType,
-            MimeType.Parse("application/root")
-        ).Should().BeTrue();
-        modifiedBuilder.RemoveParentRelation(
-            first.PrimaryMimeType,
-            MimeType.Parse("application/missing")
-        ).Should().BeFalse();
-        modifiedBuilder.ClearParents(first.PrimaryMimeType).Should().Be(0);
-        modifiedBuilder.ClearSuffixParents();
-        modifiedBuilder.ClearExtensionPreference(FileExtension.Parse("shared")).Should().BeTrue();
-        modifiedBuilder.FallbackRuleEnabled = true;
-        var modified = modifiedBuilder.Build();
+    [Fact]
+    public void ToBuilder_can_remove_and_replace_every_configuration_area()
+    {
+        var original = CreateConfiguredRegistry();
+        var first = MimeType.Parse("application/first");
+
+        var builder = original.ToBuilder();
+        builder.RemoveGroup(MimeType.Parse("application/second")).Should().BeTrue();
+        builder.ReplaceGroup(first, Group("application/replacement", "replacement"));
+        builder.RemoveParent(first, MimeType.Parse("application/root")).Should().BeTrue();
+        builder.RemoveParent(first, MimeType.Parse("application/missing")).Should().BeFalse();
+        builder.ClearParents(first).Should().Be(0);
+        builder.ClearSuffixParents();
+        builder.ClearExtensionPreference(FileExtension.Parse("shared")).Should().BeTrue();
+        builder.FallbackRuleEnabled = true;
+        var modified = builder.Build();
 
         modified.TryGetGroup("application/second", out _).Should().BeFalse();
         modified.TryGetGroup("application/replacement", out _).Should().BeTrue();
         modified.IsSubtypeOf("application/vnd.test+custom", "application/custom").Should().BeFalse();
         modified.IsSubtypeOf("image/png", "application/octet-stream").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Modifying_a_builder_from_ToBuilder_does_not_affect_the_original_registry()
+    {
+        var original = CreateConfiguredRegistry();
+
+        var builder = original.ToBuilder();
+        builder.RemoveGroup(MimeType.Parse("application/second"));
+        builder.ClearExtensionPreference(FileExtension.Parse("shared"));
+        builder.ClearParents(MimeType.Parse("application/first"));
+        builder.FallbackRuleEnabled = true;
+        builder.Build();
 
         original.TryGetGroup("application/second", out _).Should().BeTrue();
         original.IsSubtypeOf("application/first", "application/root").Should().BeTrue();
+        original.IsSubtypeOf("image/png", "application/octet-stream").Should().BeFalse();
     }
 
     [Fact]
@@ -215,6 +232,7 @@ public sealed class MimeTypeRegistryBuilderTests
     {
         var builder = new MimeTypeRegistryBuilder()
            .AddParent("application/child", "application/first")
+           .AddParent("application/child", "application/first")
            .AddParent("application/child", "application/second")
            .AddParent("application/other", "application/first");
 
@@ -244,7 +262,7 @@ public sealed class MimeTypeRegistryBuilderTests
     {
         var builder = new MimeTypeRegistryBuilder();
         var nullGroup = () => builder.AddGroup(null!);
-        var nullPrimary = () => builder.AddGroup(null!);
+        var nullPrimary = () => builder.AddGroup((string) null!);
         var nullReplacement = () => builder.ReplaceGroup(MimeType.Parse("application/a"), null!);
         var invalidSuffix = () => builder.SetSuffixParent("not valid", MimeType.Parse("application/a"));
         var emptySuffix = () => builder.RemoveSuffixParent("");
@@ -256,6 +274,21 @@ public sealed class MimeTypeRegistryBuilderTests
         invalidSuffix.Should().Throw<FormatException>();
         emptySuffix.Should().Throw<ArgumentException>();
         nullPreference.Should().Throw<ArgumentNullException>();
+    }
+
+    private static MimeTypeRegistry CreateConfiguredRegistry()
+    {
+        var second = Group("application/second", "shared");
+        var builder = new MimeTypeRegistryBuilder()
+           .AddGroup(Group("application/first", "shared"))
+           .AddGroup(second)
+           .AddParent("application/first", "application/root")
+           .SetExtensionPreference(FileExtension.Parse("shared"), second.PrimaryMimeType);
+        builder.ClearSuffixParents();
+        builder.SetSuffixParent("custom", MimeType.Parse("application/custom"));
+        builder.TextPlainRuleEnabled = false;
+        builder.FallbackRuleEnabled = false;
+        return builder.Build();
     }
 
     private static MimeTypeGroup Group(string mimeType, string extension)

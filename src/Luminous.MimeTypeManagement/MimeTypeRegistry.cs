@@ -12,107 +12,56 @@ namespace Luminous.MimeTypeManagement;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Normalization and hierarchy answer different questions. Use <see cref="Normalize(MimeType)"/> to
+/// Normalization and hierarchy answer different questions. Use <see cref="Normalize(MimeType)" /> to
 /// collapse alternate names for the same format to a canonical MIME type. Use
-/// <see cref="IsSubtypeOf(MimeType, MimeType)"/> to test format compatibility or containment without
+/// <see cref="IsSubtypeOf(MimeType, MimeType)" /> to test format compatibility or containment without
 /// changing identity, such as determining that a DOCX format is based on ZIP.
 /// </para>
 /// <para>
 /// Registries are snapshots and may be shared across threads. Create one with
-/// <see cref="MimeTypeRegistryBuilder"/>; call <see cref="ToBuilder"/> when a configured registry must
-/// be customized without changing existing readers.
+/// <see cref="MimeTypeRegistryBuilder" /> or directly from a
+/// <see cref="MimeTypeRegistryConfiguration" />; call <see cref="ToBuilder" /> when a configured registry
+/// must be customized without changing existing readers.
 /// </para>
 /// </remarks>
 public sealed class MimeTypeRegistry
 {
+    private readonly MimeTypeRegistryConfiguration _configuration;
     private readonly MimeType _fallbackParent;
-    private readonly bool _fallbackRuleEnabled;
     private readonly FrozenDictionary<FileExtension, ImmutableArray<MimeTypeGroup>> _groupsByExtension;
     private readonly FrozenDictionary<MimeType, MimeTypeGroup> _groupsByMimeType;
-    private readonly FrozenDictionary<string, MimeType> _knownMimeTypes;
     private readonly FrozenDictionary<string, MimeType>.AlternateLookup<ReadOnlySpan<char>> _knownMimeTypesBySpan;
-    private readonly MimeType _normalizedTextPlain;
     private readonly FrozenDictionary<MimeType, ImmutableArray<MimeType>> _parentsByMimeType;
-    private readonly ImmutableArray<KeyValuePair<FileExtension, ImmutableArray<MimeType>>> _sourceExtensionPreferences;
-    private readonly MimeType _sourceFallbackParent;
-    private readonly ImmutableArray<(MimeType Child, MimeType Parent)> _sourceParentRelations;
-    private readonly ImmutableArray<KeyValuePair<string, MimeType>> _sourceSuffixParents;
-    private readonly MimeType _sourceTextParent;
-    private readonly bool _structuredSyntaxSuffixRulesEnabled;
     private readonly FrozenDictionary<string, MimeType> _suffixParents;
     private readonly MimeType _textParent;
-    private readonly bool _textPlainRuleEnabled;
 
     /// <summary>
-    /// Creates an empty registry with the default implicit hierarchy rules enabled.
+    /// Validates a configuration and creates an immutable, thread-safe registry from it.
     /// </summary>
-    /// <remarks>
-    /// No equivalence groups or extensions are seeded. Structured-syntax suffixes, <c>text/*</c>, and
-    /// the <c>application/octet-stream</c> fallback still behave according to builder defaults.
-    /// </remarks>
-    public MimeTypeRegistry()
-        : this(new MimeTypeRegistryBuilder().Build()) { }
-
-    private MimeTypeRegistry(MimeTypeRegistry source)
-    {
-        Groups = source.Groups;
-        ParseOptions = source.ParseOptions;
-        _groupsByMimeType = source._groupsByMimeType;
-        _groupsByExtension = source._groupsByExtension;
-        _parentsByMimeType = source._parentsByMimeType;
-        _knownMimeTypes = source._knownMimeTypes;
-        _knownMimeTypesBySpan = _knownMimeTypes.GetAlternateLookup<ReadOnlySpan<char>>();
-        _suffixParents = source._suffixParents;
-        _sourceParentRelations = source._sourceParentRelations;
-        _sourceSuffixParents = source._sourceSuffixParents;
-        _sourceExtensionPreferences = source._sourceExtensionPreferences;
-        _structuredSyntaxSuffixRulesEnabled = source._structuredSyntaxSuffixRulesEnabled;
-        _textPlainRuleEnabled = source._textPlainRuleEnabled;
-        _fallbackRuleEnabled = source._fallbackRuleEnabled;
-        _sourceTextParent = source._sourceTextParent;
-        _sourceFallbackParent = source._sourceFallbackParent;
-        _textParent = source._textParent;
-        _fallbackParent = source._fallbackParent;
-        _normalizedTextPlain = source._normalizedTextPlain;
-    }
-
-    /// <summary>
-    /// Builds an immutable registry snapshot from the supplied builder.
-    /// </summary>
-    /// <param name="builder">The complete registry configuration.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
+    /// <param name="configuration">The complete registry configuration.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="configuration" /> is <see langword="null" />.</exception>
     /// <exception cref="MimeTypeRegistryValidationException">
-    /// The builder contains one or more invalid configuration entries.
+    /// <paramref name="configuration" /> contains one or more invalid entries, such as duplicate group
+    /// membership or a cycle in the explicit hierarchy. The exception lists all detected violations.
     /// </exception>
-    public MimeTypeRegistry(MimeTypeRegistryBuilder builder)
-        : this((builder ?? throw new ArgumentNullException(nameof(builder))).Build()) { }
-
-    internal MimeTypeRegistry(
-        ImmutableArray<MimeTypeGroup> groups,
-        ImmutableArray<(MimeType Child, MimeType Parent)> parentRelations,
-        ImmutableArray<KeyValuePair<string, MimeType>> suffixParents,
-        ImmutableArray<KeyValuePair<FileExtension, ImmutableArray<MimeType>>> extensionPreferences,
-        MimeTypeParseOptions parseOptions,
-        bool structuredSyntaxSuffixRulesEnabled,
-        bool textPlainRuleEnabled,
-        bool fallbackRuleEnabled,
-        MimeType textParent,
-        MimeType fallbackParent
-    )
+    /// <remarks>
+    /// <see cref="MimeTypeRegistryBuilder.Build" /> calls this constructor after taking a snapshot of the
+    /// builder's state. Call it directly when a configuration is assembled without a builder, for example
+    /// after deserializing configuration data.
+    /// </remarks>
+    public MimeTypeRegistry(MimeTypeRegistryConfiguration configuration)
     {
-        Groups = groups;
-        ParseOptions = parseOptions;
-        _sourceParentRelations = parentRelations;
-        _sourceSuffixParents = suffixParents;
-        _sourceExtensionPreferences = extensionPreferences;
-        _structuredSyntaxSuffixRulesEnabled = structuredSyntaxSuffixRulesEnabled;
-        _textPlainRuleEnabled = textPlainRuleEnabled;
-        _fallbackRuleEnabled = fallbackRuleEnabled;
-        _sourceTextParent = textParent;
-        _sourceFallbackParent = fallbackParent;
+        ArgumentNullException.ThrowIfNull(configuration);
+        var violations = configuration.GetViolations();
+        if (violations.Count > 0)
+        {
+            throw new MimeTypeRegistryValidationException(violations);
+        }
+
+        _configuration = configuration;
 
         var groupsByMimeType = new Dictionary<MimeType, MimeTypeGroup>();
-        foreach (var group in groups)
+        foreach (var group in configuration.Groups)
         {
             groupsByMimeType.Add(group.PrimaryMimeType, group);
             foreach (var alias in group.Aliases)
@@ -122,12 +71,11 @@ public sealed class MimeTypeRegistry
         }
 
         _groupsByMimeType = groupsByMimeType.ToFrozenDictionary();
-        _textParent = NormalizeCore(textParent, groupsByMimeType);
-        _fallbackParent = NormalizeCore(fallbackParent, groupsByMimeType);
-        _normalizedTextPlain = NormalizeCore(MimeType.Parse("text/plain"), groupsByMimeType);
+        _textParent = NormalizeCore(configuration.TextParent, groupsByMimeType);
+        _fallbackParent = NormalizeCore(configuration.FallbackParent, groupsByMimeType);
 
         var normalizedSuffixParents = new Dictionary<string, MimeType>(StringComparer.OrdinalIgnoreCase);
-        foreach (var suffixParent in suffixParents)
+        foreach (var suffixParent in configuration.SuffixParents)
         {
             normalizedSuffixParents.Add(
                 suffixParent.Key,
@@ -136,35 +84,29 @@ public sealed class MimeTypeRegistry
         }
 
         _suffixParents = normalizedSuffixParents.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-        _parentsByMimeType = CreateParentLookup(parentRelations, groupsByMimeType);
-        _groupsByExtension = CreateExtensionLookup(groups, extensionPreferences);
-        _knownMimeTypes = CreateKnownMimeTypeLookup(
-            groups,
-            parentRelations,
-            suffixParents,
-            textParent,
-            fallbackParent
-        );
-        _knownMimeTypesBySpan = _knownMimeTypes.GetAlternateLookup<ReadOnlySpan<char>>();
+        _parentsByMimeType = CreateParentLookup(configuration.ParentRelations, groupsByMimeType);
+        _groupsByExtension = CreateExtensionLookup(configuration.Groups, configuration.ExtensionPreferences);
+        var knownMimeTypes = CreateKnownMimeTypeLookup(configuration);
+        _knownMimeTypesBySpan = knownMimeTypes.GetAlternateLookup<ReadOnlySpan<char>>();
     }
 
     /// <summary>
     /// Gets the equivalence groups in registration order.
     /// </summary>
-    public ImmutableArray<MimeTypeGroup> Groups { get; }
+    public ImmutableArray<MimeTypeGroup> Groups => _configuration.Groups;
 
     /// <summary>
     /// Gets the limits used when string-based lookups must parse a MIME type unknown to the registry.
     /// </summary>
     /// <remarks>Known registry values are resolved directly and do not require fallback parsing.</remarks>
-    public MimeTypeParseOptions ParseOptions { get; }
+    public MimeTypeParseOptions ParseOptions => _configuration.ParseOptions;
 
     /// <summary>
     /// Tries to find the equivalence group containing a MIME type as either its primary value or an alias.
     /// </summary>
     /// <param name="mimeType">The parsed MIME type to find.</param>
-    /// <param name="group">The matching group when found; otherwise, <see langword="null"/>.</param>
-    /// <returns><see langword="true"/> when the MIME type is a registered group member.</returns>
+    /// <param name="group">The matching group when found; otherwise, <see langword="null" />.</param>
+    /// <returns><see langword="true" /> when the MIME type is a registered group member.</returns>
     public bool TryGetGroup(MimeType mimeType, [NotNullWhen(true)] out MimeTypeGroup? group)
     {
         if (mimeType.IsDefault)
@@ -182,9 +124,9 @@ public sealed class MimeTypeRegistry
     /// <param name="mimeType">
     /// The MIME type name to find. Casing and parameters do not affect lookup.
     /// </param>
-    /// <param name="group">The matching group when found; otherwise, <see langword="null"/>.</param>
+    /// <param name="group">The matching group when found; otherwise, <see langword="null" />.</param>
     /// <returns>
-    /// <see langword="true"/> when the value is valid and registered; <see langword="false"/> for invalid
+    /// <see langword="true" /> when the value is valid and registered; <see langword="false" /> for invalid
     /// or unregistered values.
     /// </returns>
     public bool TryGetGroup(
@@ -206,9 +148,9 @@ public sealed class MimeTypeRegistry
     /// </summary>
     /// <param name="mimeType">The MIME type to normalize.</param>
     /// <returns>
-    /// The group's primary MIME type when registered; otherwise, <paramref name="mimeType"/> unchanged.
+    /// The group's primary MIME type when registered; otherwise, <paramref name="mimeType" /> unchanged.
     /// </returns>
-    /// <exception cref="ArgumentException"><paramref name="mimeType"/> is the default value.</exception>
+    /// <exception cref="ArgumentException"><paramref name="mimeType" /> is the default value.</exception>
     public MimeType Normalize(MimeType mimeType)
     {
         if (mimeType.IsDefault)
@@ -229,12 +171,12 @@ public sealed class MimeTypeRegistry
     /// The group's primary MIME type when registered; otherwise, the parsed unknown MIME type. This
     /// pass-through behavior allows valid vendor-specific values to survive normalization.
     /// </returns>
-    /// <exception cref="FormatException"><paramref name="mimeType"/> is not a valid MIME type name.</exception>
+    /// <exception cref="FormatException"><paramref name="mimeType" /> is not a valid MIME type name.</exception>
     public MimeType Normalize(ReadOnlySpan<char> mimeType)
     {
         if (!TryResolveMimeType(mimeType, out var parsed))
         {
-            throw new FormatException("The value is not a valid RFC 6838 media type name.");
+            throw new FormatException(MimeType.InvalidMediaTypeNameMessage);
         }
 
         return Normalize(parsed);
@@ -248,11 +190,11 @@ public sealed class MimeTypeRegistry
     /// The group's primary MIME type when registered; otherwise, the original value.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> only when <paramref name="mimeType"/> belongs to a registered group.
+    /// <see langword="true" /> only when <paramref name="mimeType" /> belongs to a registered group.
     /// </returns>
     /// <remarks>
-    /// Unlike <see cref="Normalize(MimeType)"/>, a valid but unknown value produces
-    /// <see langword="false"/> so callers can distinguish pass-through from registry-backed normalization.
+    /// Unlike <see cref="Normalize(MimeType)" />, a valid but unknown value produces
+    /// <see langword="false" /> so callers can distinguish pass-through from registry-backed normalization.
     /// </remarks>
     public bool TryNormalize(MimeType mimeType, out MimeType normalizedMimeType)
     {
@@ -277,7 +219,7 @@ public sealed class MimeTypeRegistry
     /// the default value.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> only when <paramref name="mimeType"/> is valid and belongs to a registered group.
+    /// <see langword="true" /> only when <paramref name="mimeType" /> is valid and belongs to a registered group.
     /// </returns>
     public bool TryNormalize(ReadOnlySpan<char> mimeType, out MimeType normalizedMimeType)
     {
@@ -296,7 +238,7 @@ public sealed class MimeTypeRegistry
     /// <param name="extension">The normalized extension to look up.</param>
     /// <returns>An empty array when no group claims the extension.</returns>
     /// <remarks>
-    /// Multiple results are expected for ambiguous extensions. Use <see cref="TryGetPreferredGroup(FileExtension, out MimeTypeGroup)"/>
+    /// Multiple results are expected for ambiguous extensions. Use <see cref="TryGetPreferredGroup(FileExtension, out MimeTypeGroup)" />
     /// only when the first configured candidate is sufficient.
     /// </remarks>
     public ImmutableArray<MimeTypeGroup> GetGroups(FileExtension extension)
@@ -309,7 +251,7 @@ public sealed class MimeTypeRegistry
     /// </summary>
     /// <param name="extension">An extension in forms such as <c>pdf</c>, <c>.pdf</c>, or <c>*.pdf</c>.</param>
     /// <returns>An empty array when no group claims the valid extension.</returns>
-    /// <exception cref="FormatException"><paramref name="extension"/> is not a valid file extension.</exception>
+    /// <exception cref="FormatException"><paramref name="extension" /> is not a valid file extension.</exception>
     public ImmutableArray<MimeTypeGroup> GetGroups(ReadOnlySpan<char> extension)
     {
         return GetGroups(FileExtension.Parse(extension));
@@ -320,7 +262,7 @@ public sealed class MimeTypeRegistry
     /// </summary>
     /// <param name="extension">The normalized extension to look up.</param>
     /// <param name="groups">The ordered claiming groups when found; otherwise, a default immutable array.</param>
-    /// <returns><see langword="true"/> when at least one group claims the extension.</returns>
+    /// <returns><see langword="true" /> when at least one group claims the extension.</returns>
     public bool TryGetGroups(FileExtension extension, out ImmutableArray<MimeTypeGroup> groups)
     {
         return _groupsByExtension.TryGetValue(extension, out groups);
@@ -330,11 +272,11 @@ public sealed class MimeTypeRegistry
     /// Tries to get the highest-priority group claiming an extension.
     /// </summary>
     /// <param name="extension">The normalized extension to look up.</param>
-    /// <param name="group">The first group in configured preference order; otherwise, <see langword="null"/>.</param>
-    /// <returns><see langword="true"/> when at least one group claims the extension.</returns>
+    /// <param name="group">The first group in configured preference order; otherwise, <see langword="null" />.</param>
+    /// <returns><see langword="true" /> when at least one group claims the extension.</returns>
     /// <remarks>
     /// An extension alone cannot reliably identify file content. When ambiguity matters, inspect all
-    /// candidates from <see cref="GetGroups(FileExtension)"/> and combine them with other evidence.
+    /// candidates from <see cref="GetGroups(FileExtension)" /> and combine them with other evidence.
     /// </remarks>
     public bool TryGetPreferredGroup(
         FileExtension extension,
@@ -355,22 +297,22 @@ public sealed class MimeTypeRegistry
     /// Tries to parse an extension and get its highest-priority claiming group.
     /// </summary>
     /// <param name="extension">An extension in forms such as <c>pdf</c>, <c>.pdf</c>, or <c>*.pdf</c>.</param>
-    /// <param name="group">The first group in configured preference order; otherwise, <see langword="null"/>.</param>
+    /// <param name="group">The first group in configured preference order; otherwise, <see langword="null" />.</param>
     /// <returns>
-    /// <see langword="true"/> when the extension is valid and claimed; otherwise, <see langword="false"/>.
+    /// <see langword="true" /> when the extension is valid and claimed; otherwise, <see langword="false" />.
     /// </returns>
     public bool TryGetPreferredGroup(
         ReadOnlySpan<char> extension,
         [NotNullWhen(true)] out MimeTypeGroup? group
     )
     {
-        if (!FileExtension.TryParse(extension, out var parsed))
+        if (FileExtension.TryParse(extension, out var parsed))
         {
-            group = null;
-            return false;
+            return TryGetPreferredGroup(parsed, out group);
         }
 
-        return TryGetPreferredGroup(parsed, out group);
+        group = null;
+        return false;
     }
 
     /// <summary>
@@ -379,8 +321,8 @@ public sealed class MimeTypeRegistry
     /// <param name="mimeType">The potential child MIME type.</param>
     /// <param name="potentialParent">The type against which to test compatibility.</param>
     /// <returns>
-    /// <see langword="true"/> when the normalized values are equal or a path exists through the configured
-    /// explicit and implicit hierarchy; otherwise, <see langword="false"/>.
+    /// <see langword="true" /> when the normalized values are equal or a path exists through the configured
+    /// explicit and implicit hierarchy; otherwise, <see langword="false" />.
     /// </returns>
     /// <remarks>
     /// Both arguments are alias-normalized first. The relation is reflexive, making it suitable for
@@ -449,7 +391,7 @@ public sealed class MimeTypeRegistry
     /// <param name="mimeType">The potential child MIME type name.</param>
     /// <param name="potentialParent">The potential parent MIME type name.</param>
     /// <returns>
-    /// <see langword="false"/> when either value is invalid; otherwise, the result of the normalized
+    /// <see langword="false" /> when either value is invalid; otherwise, the result of the normalized
     /// hierarchy query.
     /// </returns>
     public bool IsSubtypeOf(ReadOnlySpan<char> mimeType, ReadOnlySpan<char> potentialParent)
@@ -472,15 +414,15 @@ public sealed class MimeTypeRegistry
     {
         var builder = new MimeTypeRegistryBuilder(ParseOptions)
         {
-            StructuredSyntaxSuffixRulesEnabled = _structuredSyntaxSuffixRulesEnabled,
-            TextPlainRuleEnabled = _textPlainRuleEnabled,
-            FallbackRuleEnabled = _fallbackRuleEnabled,
-            TextParent = _sourceTextParent,
-            FallbackParent = _sourceFallbackParent
+            StructuredSyntaxSuffixRulesEnabled = _configuration.StructuredSyntaxSuffixRulesEnabled,
+            TextPlainRuleEnabled = _configuration.TextPlainRuleEnabled,
+            FallbackRuleEnabled = _configuration.FallbackRuleEnabled,
+            TextParent = _configuration.TextParent,
+            FallbackParent = _configuration.FallbackParent
         };
 
         builder.ClearSuffixParents();
-        foreach (var suffixParent in _sourceSuffixParents)
+        foreach (var suffixParent in _configuration.SuffixParents)
         {
             builder.SetSuffixParent(suffixParent.Key, suffixParent.Value);
         }
@@ -490,12 +432,12 @@ public sealed class MimeTypeRegistry
             builder.AddGroup(group);
         }
 
-        foreach (var relation in _sourceParentRelations)
+        foreach (var relation in _configuration.ParentRelations)
         {
             builder.AddParent(relation.Child, relation.Parent);
         }
 
-        foreach (var preference in _sourceExtensionPreferences)
+        foreach (var preference in _configuration.ExtensionPreferences)
         {
             builder.SetExtensionPreference(preference.Key, preference.Value);
         }
@@ -505,24 +447,14 @@ public sealed class MimeTypeRegistry
 
     private bool TryResolveMimeType(ReadOnlySpan<char> value, out MimeType mimeType)
     {
-        var mediaTypeLength = value.IndexOf(';');
-        var lookupValue = mediaTypeLength >= 0 ? value[..mediaTypeLength] : value;
-        while (!lookupValue.IsEmpty && lookupValue[^1] is ' ' or '\t')
-        {
-            lookupValue = lookupValue[..^1];
-        }
-
-        if (_knownMimeTypesBySpan.TryGetValue(lookupValue, out mimeType))
-        {
-            return true;
-        }
-
-        return MimeType.TryParse(value, ParseOptions, out mimeType);
+        var lookupValue = MimeType.TrimMediaType(value);
+        return _knownMimeTypesBySpan.TryGetValue(lookupValue, out mimeType) ||
+               MimeType.TryParse(value, ParseOptions, out mimeType);
     }
 
     private bool TryGetImplicitParent(MimeType mimeType, out MimeType parent)
     {
-        if (_structuredSyntaxSuffixRulesEnabled &&
+        if (_configuration.StructuredSyntaxSuffixRulesEnabled &&
             mimeType.Suffix is not null &&
             _suffixParents.TryGetValue(mimeType.Suffix, out parent) &&
             parent != mimeType)
@@ -530,16 +462,15 @@ public sealed class MimeTypeRegistry
             return true;
         }
 
-        if (_textPlainRuleEnabled &&
+        if (_configuration.TextPlainRuleEnabled &&
             mimeType.TopLevelType == "text" &&
-            mimeType != _normalizedTextPlain &&
             _textParent != mimeType)
         {
             parent = _textParent;
             return true;
         }
 
-        if (_fallbackRuleEnabled && _fallbackParent != mimeType)
+        if (_configuration.FallbackRuleEnabled && _fallbackParent != mimeType)
         {
             parent = _fallbackParent;
             return true;
@@ -617,7 +548,7 @@ public sealed class MimeTypeRegistry
     {
         if (!preferences.TryGetValue(extension, out var preference))
         {
-            return groups.ToImmutableArray();
+            return [..groups];
         }
 
         var ordered = ImmutableArray.CreateBuilder<MimeTypeGroup>(groups.Count);
@@ -638,11 +569,7 @@ public sealed class MimeTypeRegistry
     }
 
     private static FrozenDictionary<string, MimeType> CreateKnownMimeTypeLookup(
-        ImmutableArray<MimeTypeGroup> groups,
-        ImmutableArray<(MimeType Child, MimeType Parent)> parentRelations,
-        ImmutableArray<KeyValuePair<string, MimeType>> suffixParents,
-        MimeType textParent,
-        MimeType fallbackParent
+        MimeTypeRegistryConfiguration configuration
     )
     {
         var knownMimeTypes = new Dictionary<string, MimeType>(StringComparer.OrdinalIgnoreCase);
@@ -652,7 +579,7 @@ public sealed class MimeTypeRegistry
             knownMimeTypes.TryAdd(mimeType.Value, mimeType);
         }
 
-        foreach (var group in groups)
+        foreach (var group in configuration.Groups)
         {
             Add(group.PrimaryMimeType);
             foreach (var alias in group.Aliases)
@@ -661,19 +588,19 @@ public sealed class MimeTypeRegistry
             }
         }
 
-        foreach (var relation in parentRelations)
+        foreach (var relation in configuration.ParentRelations)
         {
             Add(relation.Child);
             Add(relation.Parent);
         }
 
-        foreach (var suffixParent in suffixParents)
+        foreach (var suffixParent in configuration.SuffixParents)
         {
             Add(suffixParent.Value);
         }
 
-        Add(textParent);
-        Add(fallbackParent);
+        Add(configuration.TextParent);
+        Add(configuration.FallbackParent);
         return knownMimeTypes.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
     }
 }

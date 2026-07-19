@@ -20,7 +20,7 @@ public sealed class MimeTypeHierarchyTests
     public void Explicit_hierarchy_is_transitive_and_supports_multiple_parents()
     {
         var registry = new MimeTypeRegistryBuilder()
-           .AddParentRelation(
+           .AddParent(
                 MimeType.Parse("application/child"),
                 MimeType.Parse("application/first")
             )

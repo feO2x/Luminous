@@ -89,7 +89,7 @@ public readonly struct FileExtension : IEquatable<FileExtension>
             }
 
             previousWasDot = false;
-            if (!IsAsciiAlphaNumeric(character) && character is not '-' and not '_' and not '+')
+            if (!char.IsAsciiLetterOrDigit(character) && character is not '-' and not '_' and not '+')
             {
                 return false;
             }
@@ -133,7 +133,4 @@ public readonly struct FileExtension : IEquatable<FileExtension>
     /// <param name="right">The second extension.</param>
     /// <returns><see langword="true" /> when the normalized values differ.</returns>
     public static bool operator !=(FileExtension left, FileExtension right) => !left.Equals(right);
-
-    private static bool IsAsciiAlphaNumeric(char value) =>
-        value is >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z';
 }

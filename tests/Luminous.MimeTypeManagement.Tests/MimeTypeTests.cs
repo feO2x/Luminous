@@ -16,6 +16,8 @@ public sealed class MimeTypeTests
     )]
     [InlineData("text/plain; charset=utf-8", "text/plain", "text", "plain", null)]
     [InlineData("text/plain \t; ignored", "text/plain", "text", "plain", null)]
+    [InlineData("text/plain ", "text/plain", "text", "plain", null)]
+    [InlineData("text/plain \t", "text/plain", "text", "plain", null)]
     [InlineData("application/example+", "application/example+", "application", "example+", null)]
     public void Parse_normalizes_and_exposes_components(
         string value,
@@ -30,7 +32,6 @@ public sealed class MimeTypeTests
         result.Value.Should().Be(expectedValue);
         result.TopLevelType.Should().Be(expectedTopLevelType);
         result.SubType.Should().Be(expectedSubType);
-        result.Subtype.Should().Be(expectedSubType);
         result.Suffix.Should().Be(expectedSuffix);
         result.IsDefault.Should().BeFalse();
         result.ToString().Should().Be(expectedValue);
@@ -43,7 +44,6 @@ public sealed class MimeTypeTests
     [InlineData("text/")]
     [InlineData("text//plain")]
     [InlineData(" text/plain")]
-    [InlineData("text/plain ")]
     [InlineData("téxt/plain")]
     [InlineData("text/pl@in")]
     [InlineData("text/*")]
