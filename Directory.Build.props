@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>14.0</LangVersion>
     <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
-    <Authors>Kenny Pflug,Christian Flessa</Authors>
+    <Authors>Kenny Pflug</Authors>
     <Company>Kenny Pflug</Company>
     <Copyright>Copyright (c) 2026 Kenny Pflug</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
