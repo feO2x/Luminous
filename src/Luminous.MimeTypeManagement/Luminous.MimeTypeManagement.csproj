@@ -1,2 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>A lightweight .NET library for MIME Type Management.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
 </Project>

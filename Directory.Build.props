@@ -9,9 +9,5 @@
     <Authors>Kenny Pflug</Authors>
     <Company>Kenny Pflug</Company>
     <Copyright>Copyright (c) 2026 Kenny Pflug</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/feO2x/Luminous</PackageProjectUrl>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/feO2x/Luminous</RepositoryUrl>
   </PropertyGroup>
 </Project>
