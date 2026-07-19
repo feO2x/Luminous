@@ -54,10 +54,6 @@ jobs:
       - name: Install ReportGenerator
         run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.5.10
 
-      # --ignore-exit-code 8: Luminous.InSign.Tests currently contains only explicit tests
-      # (executed manually against the inSign sandbox), so its test session runs zero tests.
-      # Microsoft.Testing.Platform would otherwise fail the whole run with exit code 8.
-      # Genuine test failures still exit with code 2 and fail the workflow.
       - name: Test
         run: >
           dotnet test Luminous.slnx
@@ -68,7 +64,6 @@ jobs:
           --coverage
           --coverage-output-format cobertura
           /p:ContinuousIntegrationBuild=true
-          --ignore-exit-code 8
 
       - name: Merge coverage
         if: always()
