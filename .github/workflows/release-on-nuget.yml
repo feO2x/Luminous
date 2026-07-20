@@ -1,0 +1,66 @@
+name: Release on NuGet
+
+on:
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_NOLOGO: true
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  release-on-nuget:
+    name: Release on NuGet
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+      id-token: write # required for NuGet Trusted Publishing (OIDC token issuance)
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', 'Directory.Packages.props', 'Directory.Build.props', 'tests/Directory.Build.props', '**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Create signed NuGet packages
+        env:
+          SNK: ${{ secrets.LUMINOUS_SNK }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SNK_PATH=./Luminous.snk
+          trap 'rm -f "$SNK_PATH"' EXIT
+          echo "$SNK" | base64 --decode > "$SNK_PATH"
+          # AssemblyOriginatorKeyFile must be a relative path from the csproj file that is being built, hence the ../../
+          dotnet pack Luminous.slnx --configuration Release --output artifacts/packages /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=../../Luminous.snk /p:ContinuousIntegrationBuild=true
+
+      - name: NuGet login (OIDC → temporary API key)
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: feO2x
+
+      - name: Push NuGet packages
+        run: >
+          dotnet nuget push "artifacts/packages/*.nupkg"
+          --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate

@@ -1,2 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>A lightweight .NET library for MIME Type Management.</Description>
+    <PackageTags>MIME;management;normalization</PackageTags>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
 </Project>
