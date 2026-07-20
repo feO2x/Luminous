@@ -16,9 +16,11 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>luminous-logo-128px.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)../luminous-logo-128px.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
