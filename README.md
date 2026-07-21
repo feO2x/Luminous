@@ -38,7 +38,7 @@ using Luminous.MimeTypeManagement;
 
 var registry = DocumentSeed.Registry;
 
-// 1. Normalize whatever the client sent into one canonical value.
+// 1. Normalize a supported MIME type into one canonical value.
 //    Casing and Content-Type parameters never get in the way.
 registry.Normalize("image/jpg");                    // image/jpeg
 registry.Normalize("application/x-pdf");            // application/pdf
@@ -71,9 +71,13 @@ registry.Normalize("audio/wav");     // audio/vnd.wave (the IANA-registered name
 registry.Normalize("audio/x-wav");   // audio/vnd.wave
 ```
 
-Valid MIME types that are unknown to the registry pass through normalization unchanged, so
-vendor-specific types (`application/vnd.acme.invoice+json`) survive even when you never
-registered them.
+Valid MIME types that are unknown to the registry throw `KeyNotFoundException` by default. This
+makes normalization suitable for rejecting unsupported document types. Pass
+`throwWhenUnknown: false` to preserve an unknown vendor-specific value instead:
+
+```csharp
+registry.Normalize("application/vnd.acme.invoice+json", throwWhenUnknown: false);
+```
 
 #### Hierarchy and `IsSubtypeOf`
 
@@ -82,6 +86,9 @@ the registry maintains a **hierarchy** instead. DOCX is based on ZIP, but it mus
 to `application/zip` — so the seed models it with a parent relation, not an alias:
 
 ```csharp
+var docx = MimeType.Parse(
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
 registry.IsSubtypeOf(docx, "application/zip");  // true
 registry.Normalize(docx);                       // still application/vnd...document
 ```
@@ -113,8 +120,12 @@ extension, `GetGroups` returns all candidates in configured preference order, wh
 ```csharp
 // The document seed registers .webm for both audio/webm and video/webm,
 // with video preferred.
-registry.GetGroups(".webm");          // [video/webm, audio/webm]
-registry.TryGetPreferredGroup(".webm", out var g); // video/webm
+var groups = registry.GetGroups(".webm");
+var firstCandidate = groups[0].PrimaryMimeType;  // video/webm
+var secondCandidate = groups[1].PrimaryMimeType; // audio/webm
+
+if (registry.TryGetPreferredGroup(".webm", out var preferred))
+    Console.WriteLine(preferred.PrimaryMimeType); // video/webm
 ```
 
 Extension parsing is forgiving — `webm`, `.webm`, and `*.WEBM` all work, and compound extensions
@@ -155,11 +166,14 @@ To compose a leaner seed from scratch, call only the category methods you need �
 ```csharp
 var registry = new MimeTypeRegistryBuilder()
     .AddGroup("application/zip", ["application/x-zip-compressed"], ["zip"])
-    .AddGroup("application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        extensions: ["docx"])
+    .AddGroup(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        extensions: ["docx"]
+     )
     .AddParent(
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/zip")
+        "application/zip"
+     )
     .Build();
 
 registry.Normalize("application/x-zip-compressed"); // application/zip

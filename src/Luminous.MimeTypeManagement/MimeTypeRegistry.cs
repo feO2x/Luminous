@@ -12,7 +12,7 @@ namespace Luminous.MimeTypeManagement;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Normalization and hierarchy answer different questions. Use <see cref="Normalize(MimeType)" /> to
+/// Normalization and hierarchy answer different questions. Use <see cref="Normalize(MimeType, bool)" /> to
 /// collapse alternate names for the same format to a canonical MIME type. Use
 /// <see cref="IsSubtypeOf(MimeType, MimeType)" /> to test format compatibility or containment without
 /// changing identity, such as determining that a DOCX format is based on ZIP.
@@ -147,18 +147,34 @@ public sealed class MimeTypeRegistry
     /// Replaces a registered alias with its group's primary MIME type.
     /// </summary>
     /// <param name="mimeType">The MIME type to normalize.</param>
+    /// <param name="throwWhenUnknown">
+    /// <see langword="true" /> to throw when <paramref name="mimeType" /> is not registered;
+    /// <see langword="false" /> to return it unchanged.
+    /// </param>
     /// <returns>
-    /// The group's primary MIME type when registered; otherwise, <paramref name="mimeType" /> unchanged.
+    /// The group's primary MIME type when registered; otherwise, <paramref name="mimeType" /> unchanged when
+    /// <paramref name="throwWhenUnknown" /> is <see langword="false" />.
     /// </returns>
     /// <exception cref="ArgumentException"><paramref name="mimeType" /> is the default value.</exception>
-    public MimeType Normalize(MimeType mimeType)
+    /// <exception cref="KeyNotFoundException">
+    /// <paramref name="mimeType" /> is not registered and <paramref name="throwWhenUnknown" /> is
+    /// <see langword="true" />.
+    /// </exception>
+    public MimeType Normalize(MimeType mimeType, bool throwWhenUnknown = true)
     {
         if (mimeType.IsDefault)
         {
             throw new ArgumentException("A default MIME type cannot be normalized.", nameof(mimeType));
         }
 
-        return _groupsByMimeType.TryGetValue(mimeType, out var group) ? group.PrimaryMimeType : mimeType;
+        if (_groupsByMimeType.TryGetValue(mimeType, out var group))
+        {
+            return group.PrimaryMimeType;
+        }
+
+        return throwWhenUnknown ?
+            throw new KeyNotFoundException($"MIME type '{mimeType}' is not registered.") :
+            mimeType;
     }
 
     /// <summary>
@@ -167,20 +183,23 @@ public sealed class MimeTypeRegistry
     /// <param name="mimeType">
     /// The MIME type name to normalize. Casing is normalized and parameters are discarded.
     /// </param>
+    /// <param name="throwWhenUnknown">
+    /// <see langword="true" /> to throw when <paramref name="mimeType" /> is not registered;
+    /// <see langword="false" /> to return the parsed MIME type.
+    /// </param>
     /// <returns>
-    /// The group's primary MIME type when registered; otherwise, the parsed unknown MIME type. This
-    /// pass-through behavior allows valid vendor-specific values to survive normalization.
+    /// The group's primary MIME type when registered; otherwise, the parsed MIME type when
+    /// <paramref name="throwWhenUnknown" /> is <see langword="false" />.
     /// </returns>
     /// <exception cref="FormatException"><paramref name="mimeType" /> is not a valid MIME type name.</exception>
-    public MimeType Normalize(ReadOnlySpan<char> mimeType)
-    {
-        if (!TryResolveMimeType(mimeType, out var parsed))
-        {
-            throw new FormatException(MimeType.InvalidMediaTypeNameMessage);
-        }
-
-        return Normalize(parsed);
-    }
+    /// <exception cref="KeyNotFoundException">
+    /// <paramref name="mimeType" /> is valid but not registered and <paramref name="throwWhenUnknown" /> is
+    /// <see langword="true" />.
+    /// </exception>
+    public MimeType Normalize(ReadOnlySpan<char> mimeType, bool throwWhenUnknown = true) =>
+        !TryResolveMimeType(mimeType, out var parsed) ?
+            throw new FormatException(MimeType.InvalidMediaTypeNameMessage) :
+            Normalize(parsed, throwWhenUnknown);
 
     /// <summary>
     /// Tries to normalize a registered primary or alias member to its group's primary MIME type.
@@ -193,7 +212,7 @@ public sealed class MimeTypeRegistry
     /// <see langword="true" /> only when <paramref name="mimeType" /> belongs to a registered group.
     /// </returns>
     /// <remarks>
-    /// Unlike <see cref="Normalize(MimeType)" />, a valid but unknown value produces
+    /// Unlike <see cref="Normalize(MimeType, bool)" />, a valid but unknown value produces
     /// <see langword="false" /> so callers can distinguish pass-through from registry-backed normalization.
     /// </remarks>
     public bool TryNormalize(MimeType mimeType, out MimeType normalizedMimeType)
@@ -337,8 +356,8 @@ public sealed class MimeTypeRegistry
             return false;
         }
 
-        var child = Normalize(mimeType);
-        var parent = Normalize(potentialParent);
+        var child = Normalize(mimeType, throwWhenUnknown: false);
+        var parent = Normalize(potentialParent, throwWhenUnknown: false);
         if (child == parent)
         {
             return true;
