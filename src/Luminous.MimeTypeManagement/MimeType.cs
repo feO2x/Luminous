@@ -32,7 +32,7 @@ public readonly struct MimeType : IEquatable<MimeType>
     /// </summary>
     /// <remarks>
     /// Both <see cref="Parse(ReadOnlySpan{char}, MimeTypeParseOptions)" /> and
-    /// <see cref="MimeTypeRegistry.Normalize(ReadOnlySpan{char})" /> use this message.
+    /// <see cref="MimeTypeRegistry.Normalize(ReadOnlySpan{char}, bool)" /> use this message.
     /// </remarks>
     public const string InvalidMediaTypeNameMessage = "The value is not a valid RFC 6838 media type name.";
 

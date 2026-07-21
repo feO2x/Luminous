@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -30,15 +31,24 @@ public sealed class MimeTypeRegistryTests
     }
 
     [Fact]
-    public void RegistryPassesValidUnknownTypesThrough()
+    public void RegistryThrowsForValidUnknownTypesByDefaultAndCanPassThemThrough()
     {
         var registry = CreateRealWorldRegistry();
+        var parsed = MimeType.Parse("model/x-exotic");
 
-        registry.Normalize("MODEL/X-EXOTIC; q=1").Value.Should().Be("model/x-exotic");
+        var normalizeText = () => registry.Normalize("MODEL/X-EXOTIC; q=1");
+        var normalizeParsed = () => registry.Normalize(parsed);
+
+        normalizeText.Should().Throw<KeyNotFoundException>()
+           .WithMessage("MIME type 'model/x-exotic' is not registered.");
+        normalizeParsed.Should().Throw<KeyNotFoundException>()
+           .WithMessage("MIME type 'model/x-exotic' is not registered.");
+        registry.Normalize("MODEL/X-EXOTIC; q=1", throwWhenUnknown: false).Should().Be(parsed);
+        registry.Normalize(parsed, throwWhenUnknown: false).Should().Be(parsed);
         registry.TryNormalize("model/x-exotic", out var unknown).Should().BeFalse();
-        unknown.Value.Should().Be("model/x-exotic");
+        unknown.Should().Be(parsed);
         registry.TryGetGroup("model/x-exotic", out _).Should().BeFalse();
-        registry.TryGetGroup(MimeType.Parse("model/x-exotic"), out _).Should().BeFalse();
+        registry.TryGetGroup(parsed, out _).Should().BeFalse();
     }
 
     [Fact]
@@ -55,9 +65,15 @@ public sealed class MimeTypeRegistryTests
         registry.IsSubtypeOf("invalid", "text/plain").Should().BeFalse();
 
         var normalizeInvalid = () => registry.Normalize("invalid");
+        var normalizeInvalidWithoutThrowingWhenUnknown = () =>
+            registry.Normalize("invalid", throwWhenUnknown: false);
         var normalizeDefault = () => registry.Normalize(default(MimeType));
+        var normalizeDefaultWithoutThrowingWhenUnknown = () =>
+            registry.Normalize(default(MimeType), throwWhenUnknown: false);
         normalizeInvalid.Should().Throw<FormatException>();
+        normalizeInvalidWithoutThrowingWhenUnknown.Should().Throw<FormatException>();
         normalizeDefault.Should().Throw<ArgumentException>();
+        normalizeDefaultWithoutThrowingWhenUnknown.Should().Throw<ArgumentException>();
     }
 
     [Fact]
@@ -135,7 +151,7 @@ public sealed class MimeTypeRegistryTests
         var registry = new MimeTypeRegistryBuilder(options).Build();
 
         registry.ParseOptions.Should().BeSameAs(options);
-        registry.Normalize("text/json").Value.Should().Be("text/json");
+        registry.Normalize("text/json", throwWhenUnknown: false).Value.Should().Be("text/json");
         registry.TryNormalize("audio/json", out _).Should().BeFalse();
         registry.TryGetGroup("audio/json", out _).Should().BeFalse();
     }
@@ -208,7 +224,7 @@ public sealed class MimeTypeRegistryTests
     {
         var registry = new MimeTypeRegistryBuilder().Build();
 
-        registry.Normalize("text/plain").Value.Should().Be("text/plain");
+        registry.Normalize("text/plain", throwWhenUnknown: false).Value.Should().Be("text/plain");
         registry.IsSubtypeOf("image/png", "application/octet-stream").Should().BeTrue();
         registry.Groups.Should().BeEmpty();
     }

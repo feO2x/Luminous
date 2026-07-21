@@ -71,7 +71,7 @@ public sealed class MimeTypeRegistryConfigurationTests
 
         var registry = new MimeTypeRegistry(configuration);
         registry.Groups.Should().BeEmpty();
-        registry.Normalize("text/plain").Value.Should().Be("text/plain");
+        registry.Normalize("text/plain", throwWhenUnknown: false).Value.Should().Be("text/plain");
     }
 
     [Fact]
